@@ -18,7 +18,7 @@ h1{font-size:22px;margin:8px 0 4px}h2{font-size:18px;margin:0 0 8px}
 button{font:inherit;border:0;border-radius:10px;padding:10px 16px;background:var(--ac);color:#fff;cursor:pointer}
 button.sec{background:var(--ac2);color:var(--ac)}button.del{background:transparent;color:var(--bad);padding:6px 8px}
 button:disabled{opacity:.5}
-input[type=text],input[type=number],input[type=password],input[type=tel],select{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin:4px 0}
+input[type=text],input[type=number],input[type=password],input[type=tel],input[type=datetime-local],textarea,select{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin:4px 0}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{justify-content:space-between}
 .opt{display:flex;gap:10px;align-items:center;padding:12px;border:1px solid var(--bd);border-radius:10px;margin:8px 0;cursor:pointer}
 .opt.sel{border-color:var(--ac);background:var(--ac2)}.opt.right{border-color:var(--ok)}.opt.wrong{border-color:var(--bad)}
@@ -26,10 +26,13 @@ input[type=text],input[type=number],input[type=password],input[type=tel],select{
 .qb{border:1px dashed var(--bd);border-radius:10px;padding:12px;margin:10px 0}
 .scroll{overflow-x:auto}table{border-collapse:collapse;width:100%}td,th{padding:8px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
 .big{font-size:40px;font-weight:700;color:var(--ac)}
+textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;margin:8px 0}.oimg{max-width:100%;max-height:160px;border-radius:6px;display:block;margin-top:6px}.pv{padding:2px 4px;overflow-x:auto}.mkbar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:6;padding:4px 0}.mkgrid{display:flex;flex-wrap:wrap;gap:6px;max-height:30vh;overflow-y:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px;margin-top:6px}.mkb{padding:6px 10px;background:var(--ac2);color:var(--ac);min-width:40px}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 </head>
 <body>
 <main id="app"><p class="mut">Loading…</p></main>
@@ -125,38 +128,76 @@ function home(){
   h(out);
 }
 
-function builder(){
-  draft={title:'',section:sec||SECS[0],secs:30,deadline:'',qs:[blankQ()]};drawBuilder();
+let lastF=null,mkOpen=false;
+const MK=[['x²','^{@}'],['xₙ','_{@}'],['a/b','\\frac{@}{}'],['√','\\sqrt{@}'],['ⁿ√','\\sqrt[@]{}'],['∫','\\int_{@}^{}'],['∮','\\oint '],['∑','\\sum_{@}^{}'],['lim','\\lim_{@\\to }'],['d/dt','\\frac{d@}{dt}'],['∂/∂x','\\frac{\\partial @}{\\partial x}'],['A⃗ vector','\\vec{@}'],['Â unit','\\hat{@}'],['Ȧ','\\dot{@}'],['Ä','\\ddot{@}'],['Ā','\\bar{@}'],['|A⃗|','\\left|\\vec{@}\\right|'],['×','\\times '],['·','\\cdot '],['±','\\pm '],['≈','\\approx '],['≠','\\neq '],['≤','\\leq '],['≥','\\geq '],['→','\\rightarrow '],['∝','\\propto '],['∞','\\infty '],['°','^\\circ'],['∇','\\nabla '],['ħ','\\hbar '],['⊥','\\perp '],['∥','\\parallel ']];
+[['α','alpha'],['β','beta'],['γ','gamma'],['δ','delta'],['ε','epsilon'],['θ','theta'],['λ','lambda'],['μ','mu'],['ν','nu'],['π','pi'],['ρ','rho'],['σ','sigma'],['τ','tau'],['φ','phi'],['ψ','psi'],['ω','omega'],['η','eta'],['Δ','Delta'],['Σ','Sigma'],['Φ','Phi'],['Ω','Omega']].forEach(g=>MK.push([g[0],'\\'+g[1]+' ']));
+document.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classList.contains('mf'))lastF=e.target});
+function fmt(s){
+  const a=String(s==null?'':s).split('$'),n=a.length;
+  return a.map((p,i)=>{
+    if(i%2===0)return esc(p).replace(/\n/g,'<br>');
+    if(n%2===0&&i===n-1)return esc('$'+p);
+    try{return katex.renderToString(p,{throwOnError:false})}catch(e){return esc(p)}
+  }).join('');
 }
-const blankQ=()=>({q:'',o:['','','',''],a:0});
+const imgQ=q=>q.qi?'<img class="qimg" src="'+q.qi+'" alt="">':'';
+const optHtml=(q,j)=>fmt(q.options[j]||'')+(q.oi&&q.oi[j]?'<img class="oimg" src="'+q.oi[j]+'" alt="">':'');
+function pv(f){const d=document.getElementById('pv_'+f.id);if(d)d.innerHTML=f.value.indexOf('$')>=0?fmt(f.value):''}
+function mk(i){
+  const f=lastF;if(!f)return alert('Tap inside a question or option box first.');
+  let t=MK[i][1];const v=f.value,s=f.selectionStart==null?v.length:f.selectionStart,e=f.selectionEnd==null?s:f.selectionEnd;
+  const inMath=(v.slice(0,s).split('$').length-1)%2===1,pos=t.indexOf('@');t=t.replace('@','');
+  const ins=inMath?t:'$'+t+'$',c=s+(inMath?0:1)+(pos<0?t.length:pos);
+  f.value=v.slice(0,s)+ins+v.slice(e);f.focus();f.setSelectionRange(c,c);pv(f);
+}
+function mkBar(){
+  return `<div class="mkbar"><button class="sec" onclick="mkOpen=!mkOpen;sync();drawBuilder(true)">∑ Math keyboard ${mkOpen?'▲':'▼'}</button>${mkOpen?`<div class="mkgrid">${MK.map((m,i)=>`<button class="mkb" onpointerdown="event.preventDefault()" onclick="mk(${i})">${esc(m[0])}</button>`).join('')}</div><div class="mut" style="padding:4px 0">Equations sit between $ signs, e.g. $F = ma$. The keys add them for you.</div>`:''}</div>`;
+}
+function builder(){draft={title:'',section:sec||SECS[0],secs:30,deadline:'',qs:[blankQ()]};drawBuilder()}
+const blankQ=()=>({q:'',qi:'',o:['','','',''],oi:['','','',''],a:0});
 function sync(){
-  draft.title=document.getElementById('bt').value;draft.secs=+document.getElementById('bm').value||30;draft.deadline=document.getElementById('bd').value;draft.section=document.getElementById('bs').value;
-  draft.qs.forEach((x,i)=>{x.q=document.getElementById('q'+i).value;for(let j=0;j<4;j++)x.o[j]=document.getElementById(`o${i}_${j}`).value;
-    const r=document.querySelector(`input[name=a${i}]:checked`);x.a=r?+r.value:0});
+  const g=id=>document.getElementById(id);if(!g('bt'))return;
+  draft.title=g('bt').value;draft.secs=+g('bm').value||30;draft.deadline=g('bd').value;draft.section=g('bs').value;
+  draft.qs.forEach((x,i)=>{x.q=g('q'+i).value;for(let j=0;j<4;j++)x.o[j]=g('o'+i+'_'+j).value;const r=document.querySelector('input[name=a'+i+']:checked');x.a=r?+r.value:0});
 }
-function drawBuilder(){
-  let o=`<h1>New test</h1><div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
-  <label class="mut">Section</label><select id="bs" style="width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin:4px 0">${SECS.map(s=>`<option ${draft.section===s?'selected':''}>${s}</option>`).join('')}</select>
+function drawBuilder(keep){
+  const y=window.scrollY;
+  const th=(src,k,i,j)=>src?`<div class="row" style="margin:6px 0"><img class="${k==='q'?'qimg':'oimg'}" src="${src}" alt=""><button class="del" onclick="rmImg('${k}',${i},${j})">Remove image</button></div>`:'';
+  let o=`<h1>New test</h1>${mkBar()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
+  <label class="mut">Section</label><select id="bs">${SECS.map(s=>`<option ${draft.section===s?'selected':''}>${s}</option>`).join('')}</select>
   <label class="mut">Time per question (seconds)</label><input type="number" id="bm" min="5" value="${draft.secs}">
-  <label class="mut">Available until (optional)</label><input type="datetime-local" id="bd" value="${esc(draft.deadline)}" style="width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin:4px 0"></div>`;
+  <label class="mut">Available until (optional)</label><input type="datetime-local" id="bd" value="${esc(draft.deadline)}"></div>`;
   draft.qs.forEach((x,i)=>{
     o+=`<div class="qb"><div class="row sp"><b>Question ${i+1}</b>${draft.qs.length>1?`<button class="del" onclick="rmQ(${i})">Remove</button>`:''}</div>
-    <input type="text" id="q${i}" value="${esc(x.q)}" placeholder="Question text">`;
-    for(let j=0;j<4;j++)o+=`<div class="row"><input type="radio" name="a${i}" value="${j}" ${x.a===j?'checked':''}><input type="text" style="flex:1;width:auto" id="o${i}_${j}" value="${esc(x.o[j])}" placeholder="Option ${j+1}"></div>`;
+    <textarea id="q${i}" class="mf" rows="3" oninput="pv(this)" placeholder="Question text (use the math keyboard for equations)">${esc(x.q)}</textarea>
+    <div class="pv" id="pv_q${i}">${x.q.indexOf('$')>=0?fmt(x.q):''}</div>${th(x.qi,'q',i,0)}<button class="sec" onclick="addImg('q',${i},0)">🖼 Add image to question</button>`;
+    for(let j=0;j<4;j++)o+=`<div class="row" style="margin-top:10px"><input type="radio" name="a${i}" value="${j}" ${x.a===j?'checked':''}><input type="text" class="mf" style="flex:1;width:auto" id="o${i}_${j}" value="${esc(x.o[j])}" placeholder="Option ${j+1}" oninput="pv(this)"><button class="sec" onclick="addImg('o',${i},${j})">🖼</button></div><div class="pv" id="pv_o${i}_${j}">${x.o[j].indexOf('$')>=0?fmt(x.o[j]):''}</div>${th(x.oi[j],'o',i,j)}`;
     o+=`<div class="mut">Select the radio button next to the correct answer.</div></div>`;
   });
   o+=`<div class="row"><button class="sec" onclick="addQ()">+ Add question</button><button onclick="saveTest()">Save test</button><button class="sec" onclick="home()">Cancel</button></div>`;
-  h(o);
+  h(o);if(keep)window.scrollTo(0,y);
 }
 function addQ(){sync();draft.qs.push(blankQ());drawBuilder();window.scrollTo(0,document.body.scrollHeight)}
-function rmQ(i){sync();draft.qs.splice(i,1);drawBuilder()}
+function rmQ(i){sync();draft.qs.splice(i,1);drawBuilder(true)}
+function rmImg(k,i,j){sync();if(k==='q')draft.qs[i].qi='';else draft.qs[i].oi[j]='';drawBuilder(true)}
+function addImg(k,i,j){
+  sync();const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;
+    try{const d=await shrink(f,k==='q'?800:500);if(k==='q')draft.qs[i].qi=d;else draft.qs[i].oi[j]=d;drawBuilder(true)}catch(e){alert('Could not read that image.')}};
+  inp.click();
+}
+function shrink(file,max){return new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const r=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',0.72))};im.onerror=rej;im.src=u})}
 async function saveTest(){
   sync();
   if(!draft.title.trim())return alert('Please add a title.');
-  for(const x of draft.qs){if(!x.q.trim()||x.o.some(v=>!v.trim()))return alert('Fill in every question and all four options.')}
+  for(const x of draft.qs){
+    if(!(x.q.trim()||x.qi))return alert('Every question needs text or an image.');
+    for(let j=0;j<4;j++)if(!(x.o[j].trim()||x.oi[j]))return alert('Every option needs text or an image.');
+  }
+  const d={title:draft.title.trim(),section:draft.section,secs:draft.secs,deadline:draft.deadline?new Date(draft.deadline).getTime():0,created:Date.now(),questions:draft.qs.map(x=>({q:x.q.trim(),qi:x.qi||'',options:x.o.map(v=>v.trim()),oi:x.oi.map(v=>v||''),answer:x.a}))};
+  if(JSON.stringify(d).length>900000)return alert('This test has too many or too large images. Remove a few images or split it into two tests.');
   const id='t'+Date.now().toString(36);
-  try{await db.collection('tests').doc(id).set({title:draft.title.trim(),section:draft.section,secs:draft.secs,deadline:draft.deadline?new Date(draft.deadline).getTime():0,created:Date.now(),questions:draft.qs.map(x=>({q:x.q.trim(),options:x.o.map(v=>v.trim()),answer:x.a}))});draft=null;home()}
-  catch(e){alert('Could not save: '+(e.message||e))}
+  try{await db.collection('tests').doc(id).set(d);draft=null;home()}catch(e){alert('Could not save: '+(e.message||e))}
 }
 function editDl(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
@@ -197,8 +238,8 @@ function begin(id){
 }
 function drawTest(){
   const {t,ans,i}=cur,q=t.questions[i],last=i===t.questions.length-1;
-  let o=`<div class="timer" id="tm"></div><div class="mut">Question ${i+1} of ${t.questions.length}</div><div class="card"><b>${esc(q.q)}</b>`;
-  q.options.forEach((op,j)=>o+=`<div class="opt ${ans[i]===j?'sel':''}" onclick="pick(${j})">${esc(op)}</div>`);
+  let o=`<div class="timer" id="tm"></div><div class="mut">Question ${i+1} of ${t.questions.length}</div><div class="card"><b>${fmt(q.q)}</b>${imgQ(q)}`;
+  q.options.forEach((op,j)=>o+=`<div class="opt ${ans[i]===j?'sel':''}" onclick="pick(${j})">${optHtml(q,j)}</div>`);
   o+=`</div><button onclick="next(false)">${last?'Submit test':'Next question'}</button>`;
   h(o);tick();
 }
@@ -228,8 +269,8 @@ async function submit(auto){
   mine[t.id]=rec;
   let o=`<h1>${auto?'Time’s up!':'Submitted!'}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${score}/${total}</div><div class="mut">${Math.round(score/total*100)}%</div></div><h2>Review</h2>`;
   t.questions.forEach((q,i)=>{
-    o+=`<div class="card"><b>${i+1}. ${esc(q.q)}</b>`;
-    q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${esc(op)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
+    o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;
+    q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
     o+=`</div>`;
   });
   o+=`<button onclick="home()">Back to tests</button>`;
