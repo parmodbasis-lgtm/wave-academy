@@ -56,7 +56,7 @@ function init(){
     uid=u.uid;
     try{
       const [a,p,r]=await Promise.all([db.collection('admins').doc(uid).get(),db.collection('users').doc(uid).get(),db.collection('users/'+uid+'/results').get()]);
-      isTeacher=a.exists;if(p.exists)myName=p.data().name;r.docs.forEach(d=>mine[d.id]=d.data());
+      isTeacher=a.exists;if(p.exists){myName=p.data().name;myMobile=p.data().mobile||''}r.docs.forEach(d=>mine[d.id]=d.data());
       unsub=db.collection('tests').orderBy('created','desc').onSnapshot(s=>{tests=s.docs.map(d=>({id:d.id,...d.data()}));if(!timer&&!draft){if(!openHash())home()}},e=>h('<div class="card">Could not load tests.</div>'));
       loaded=true;if(!openHash())home();
     }catch(e){h('<div class="card">Something went wrong: '+esc(e.message||e)+'</div>')}
@@ -114,7 +114,7 @@ function timeOver(){h('<div class="card" style="text-align:center"><div class="b
 function home(){
   draft=null;
   let out=`<div class="row" style="gap:14px;margin:8px 0"><img src="${LOGO}" alt="The Wave Academy logo" width="76" height="76" style="border-radius:50%;flex:none"><div><h1 style="margin:0">The Wave Academy</h1><p class="mut" style="margin:0"><b>Online Tests</b></p></div><button class="sec" style="margin-left:auto" onclick="logout()">Sign out</button></div><p class="mut">${isTeacher?'Teacher view — create tests and see results.':'Choose your section to find tests.'}</p>`;
-  if(sec===null){SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;out+=`<div class="card opt" style="display:block" onclick="sec='${s}';home()"><div class="row sp"><h2 style="margin:0">${s}</h2><span class="mut">${n} test${n===1?'':'s'} ›</span></div></div>`});return h(out)}
+  if(sec===null){SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;out+=`<div class="card opt" style="display:block" onclick="sec='${s}';home()"><div class="row sp"><h2 style="margin:0">${s}</h2><span class="mut">${n} test${n===1?'':'s'} ›</span></div></div>`});out+=menuExtra();return h(out)}
   out+=`<button class="sec" onclick="sec=null;home()">← All sections</button><h2 style="margin-top:14px">${esc(sec)}</h2>`;
   if(isTeacher)out+=`<button onclick="builder()">+ Create new test</button>`;
   const ts=tests.filter(t=>(t.section||'Other')===sec);
@@ -261,7 +261,7 @@ async function submit(auto){
   clearInterval(timer);timer=null;
   const {t,ans}=cur;cur=null;
   const score=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0),total=t.questions.length;
-  const rec={testId:t.id,uid,name:myName,score,total,answers:ans,at:Date.now()};
+  const rec={testId:t.id,uid,name:myName,mobile:myMobile,score,total,answers:ans,at:Date.now()};
   try{
     await db.collection('results').doc(t.id+'_'+uid).set(rec);
     await db.collection('users/'+uid+'/results').doc(t.id).set(rec);
@@ -276,18 +276,60 @@ async function submit(auto){
   o+=`<button onclick="home()">Back to tests</button>`;
   h(o);
 }
+let myMobile='';
+const menuExtra=()=>`<div class="row" style="margin-top:6px"><button class="sec" onclick="progress()">📊 My progress</button>${isTeacher?'<button class="sec" onclick="students()">👥 Students</button>':''}</div>`;
+async function students(){
+  h('<p class="mut">Loading…</p>');
+  try{
+    const [u,r]=await Promise.all([db.collection('users').get(),db.collection('results').get()]);
+    const cnt={};r.docs.forEach(d=>{const x=d.data();cnt[x.uid]=(cnt[x.uid]||0)+1});
+    const rows=u.docs.filter(d=>d.id!==uid).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    let o=`<h1>Students</h1><p class="mut">${rows.length} registered</p><div class="card scroll"><table><tr><th>Name</th><th>Mobile</th><th>Tests taken</th></tr>`;
+    rows.forEach(s=>o+=`<tr><td>${esc(s.name)}</td><td>${esc(s.mobile)}</td><td>${cnt[s.id]||0}</td></tr>`);
+    if(!rows.length)o+='<tr><td colspan="3" class="mut">No students yet.</td></tr>';
+    h(o+`</table></div><button onclick="home()">Back</button>`);
+  }catch(e){h('<div class="card">Could not load: '+esc(e.message||e)+'. Make sure you published the new Firebase rules.</div><button onclick="home()">Back</button>')}
+}
+let rcache=null,rfil='all';
 async function results(id){
   const t=tests.find(x=>x.id===id);
   h('<p class="mut">Loading results…</p>');
   try{
-    const s=await db.collection('results').where('testId','==',id).get();
-    const rows=s.docs.map(d=>d.data()).sort((a,b)=>b.score-a.score);
-    const avg=rows.length?(rows.reduce((n,r)=>n+r.score,0)/rows.length).toFixed(1):'–';
-    let o=`<h1>${esc(t.title)} — results</h1><p class="mut">${rows.length} submission(s) · average ${avg}/${t.questions.length}</p><div class="card scroll"><table><tr><th>Student</th><th>Score</th><th>%</th><th>Submitted</th></tr>`;
-    rows.forEach(r=>o+=`<tr><td>${esc(r.name)}</td><td>${r.score}/${r.total}</td><td>${Math.round(r.score/r.total*100)}%</td><td>${new Date(r.at).toLocaleString()}</td></tr>`);
-    if(!rows.length)o+=`<tr><td colspan="4" class="mut">No submissions yet.</td></tr>`;
-    h(o+`</table></div><button onclick="home()">Back</button>`);
-  }catch(e){h('<div class="card">Could not load results: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
+    const [u,r]=await Promise.all([db.collection('users').get(),db.collection('results').where('testId','==',id).get()]);
+    const sub={};r.docs.forEach(d=>{const x=d.data();sub[x.uid]=x});
+    const rows=u.docs.filter(d=>d.id!==uid).map(d=>({uid:d.id,name:d.data().name,mobile:d.data().mobile,res:sub[d.id]||null}));
+    Object.keys(sub).forEach(k=>{if(k!==uid&&!rows.some(x=>x.uid===k))rows.push({uid:k,name:sub[k].name,mobile:sub[k].mobile||'',res:sub[k]})});
+    rcache={t,rows};rfil='all';drawResults();
+  }catch(e){h('<div class="card">Could not load results: '+esc(e.message||e)+'. Make sure you published the new Firebase rules.</div><button onclick="home()">Back</button>')}
+}
+function setRf(f){rfil=f;drawResults()}
+function drawResults(){
+  const t=rcache.t,rows=rcache.rows,done=rows.filter(x=>x.res),n=rows.length;
+  const avg=done.length?(done.reduce((s,x)=>s+x.res.score,0)/done.length).toFixed(1):'–';
+  const list=rows.filter(x=>rfil==='all'||(rfil==='done'?x.res:!x.res));
+  list.sort((a,b)=>(b.res?b.res.score:-1)-(a.res?a.res.score:-1)||(a.name||'').localeCompare(b.name||''));
+  const tab=(k,l)=>`<button class="${rfil===k?'':'sec'}" onclick="setRf('${k}')">${l}</button>`;
+  let o=`<h1>${esc(t.title)}</h1><p class="mut">${done.length} of ${n} students submitted · average ${avg}/${t.questions.length}</p><div class="row" style="margin:8px 0">${tab('all','All ('+n+')')}${tab('done','Submitted ('+done.length+')')}${tab('no','Not yet ('+(n-done.length)+')')}</div><div class="card scroll"><table><tr><th>Student</th><th>Mobile</th><th>Status</th><th>Score</th><th>Submitted</th></tr>`;
+  list.forEach(x=>o+=`<tr><td>${esc(x.name)}</td><td>${esc(x.mobile)}</td><td>${x.res?'<span style="color:var(--ok)">✓ Submitted</span>':'<span style="color:var(--bad)">Not attempted</span>'}</td><td>${x.res?x.res.score+'/'+x.res.total+' ('+Math.round(x.res.score/x.res.total*100)+'%)':'–'}</td><td>${x.res?new Date(x.res.at).toLocaleString():'–'}</td></tr>`);
+  if(!list.length)o+='<tr><td colspan="5" class="mut">No students here.</td></tr>';
+  h(o+`</table></div><button onclick="home()">Back</button>`);
+}
+function progress(){
+  const items=Object.keys(mine).map(k=>({id:k,...mine[k]})).sort((a,b)=>b.at-a.at);
+  if(!items.length)return h('<h1>My progress</h1><div class="card mut">You haven’t taken any tests yet.</div><button onclick="home()">Back</button>');
+  const pct=x=>Math.round(x.score/x.total*100),avg=Math.round(items.reduce((s,x)=>s+pct(x),0)/items.length),best=Math.max(...items.map(pct));
+  const box=(v,l)=>`<div class="card" style="flex:1;text-align:center;margin:0"><div class="big" style="font-size:26px">${v}</div><div class="mut">${l}</div></div>`;
+  let o=`<h1>My progress</h1><p class="mut">${esc(myName)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(items.length,'Tests taken')}${box(avg+'%','Average')}${box(best+'%','Best')}</div>`;
+  items.forEach(x=>{const t=tests.find(y=>y.id===x.id),p=pct(x);
+    o+=`<div class="card"><div class="row sp"><b>${esc(t?t.title:'(deleted test)')}</b><span>${x.score}/${x.total}</span></div><div class="mut">${t?esc(t.section||'Other')+' · ':''}${new Date(x.at).toLocaleDateString()}</div><div style="background:var(--ac2);border-radius:6px;height:10px;margin:8px 0"><div style="width:${p}%;height:10px;border-radius:6px;background:${p>=60?'var(--ok)':p>=35?'var(--ac)':'var(--bad)'}"></div></div><div class="row sp"><span class="mut">${p}%</span>${t?`<button class="sec" onclick="showReview('${x.id}')">Review answers</button>`:''}</div></div>`});
+  h(o+`<button onclick="home()">Back</button>`);
+}
+function showReview(id){
+  const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return;
+  const ans=rec.answers||[];
+  let o=`<h1>${esc(t.title)}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>`;
+  t.questions.forEach((q,i)=>{o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
+  h(o+`<button onclick="progress()">Back</button>`);
 }
 init();
 </script>
