@@ -209,7 +209,7 @@ function home(){normMine();
     const info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline?' · until '+new Date(t.deadline).toLocaleString():''}`;
     if(isTeacher){
       o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● Published</span>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}</div></div><span class="mut">Students ›</span></div>
-      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
+      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
       return;
     }
     o+=`<div class="card"><div class="row sp"><div><h2>${esc(t.title)}</h2><div class="mut">${info}</div>${a&&!done?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}</div>
@@ -650,6 +650,22 @@ async function importDocx(inp){
     drawBuilder();
   }catch(e){st.textContent='Could not read this file: '+(e.message||e)}
 }
+function editTest(id){
+  const t=tests.find(x=>x.id===id);if(!t)return;impMsg='';
+  const dl=t.deadline?new Date(t.deadline-new Date(t.deadline).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  draft={id,pub:t.published===true,title:t.title||'',section:t.section||SECS[0],mins:durMin(t),deadline:dl,qs:t.questions.map(q=>({q:q.q||'',qi:q.qi||'',o:(q.options||['','','','']).slice(0,4),oi:Array.from({length:4},(_,j)=>(q.oi&&q.oi[j])||''),a:q.answer>=0?q.answer:0}))};
+  drawBuilder();
+}
+async function saveEdit(d){
+  const sz=JSON.stringify(d.questions).length;
+  if(sz>900000)return alert('This test is too large to save as one test because of the pictures. Please remove or shrink some pictures.');
+  try{
+    const r=await db.collection('results').where('testId','==',draft.id).get();
+    if(r.docs.length&&!confirm(r.docs.length+' student(s) have already taken this test. Their saved scores will not change, but their answer review will use the updated questions and answers. Save changes?'))return;
+    await db.collection('tests').doc(draft.id).update({title:d.title,section:d.section,mins:d.mins,deadline:d.deadline,questions:d.questions});
+    draft=null;home();alert('Test updated.');
+  }catch(e){alert('Could not save: '+(e.message||e))}
+}
 function builder(){impMsg='';draft={title:'',section:sec||SECS[0],mins:30,deadline:'',qs:[blankQ()]};drawBuilder()}
 const blankQ=()=>({q:'',qi:'',o:['','','',''],oi:['','','',''],a:0});
 function sync(){
@@ -660,7 +676,7 @@ function sync(){
 function drawBuilder(keep){
   const y=window.scrollY;
   const th=(src,k,i,j)=>src?`<div class="row" style="margin:6px 0"><img class="${k==='q'?'qimg':'oimg'}" src="${src}" alt=""><button class="del" onclick="rmImg('${k}',${i},${j})">Remove image</button></div>`:'';
-  let o=`<h1>New test</h1>${mkBar()}${impCard()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
+  let o=`<h1>${draft.id?'Edit test':'New test'}</h1>${mkBar()}${impCard()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
   <label class="mut">Section</label><select id="bs">${SECS.map(s=>`<option ${draft.section===s?'selected':''}>${s}</option>`).join('')}</select>
   <label class="mut">Total time for the whole test (minutes)</label><input type="number" id="bm" min="1" value="${draft.mins}">
   <label class="mut">Available until (optional)</label><input type="datetime-local" id="bd" value="${esc(draft.deadline)}"></div>`;
@@ -671,7 +687,7 @@ function drawBuilder(keep){
     for(let j=0;j<4;j++)o+=`<div class="row" style="margin-top:10px"><input type="radio" name="a${i}" value="${j}" ${x.a===j?'checked':''} onchange="var s=this.closest('.qb').querySelector('.na');if(s)s.remove()"><input type="text" class="mf" style="flex:1;width:auto" id="o${i}_${j}" value="${esc(x.o[j])}" placeholder="Option ${j+1}" oninput="pv(this)"><button class="sec" onclick="addImg('o',${i},${j})">🖼</button></div><div class="pv" id="pv_o${i}_${j}">${x.o[j].indexOf('$')>=0?fmt(x.o[j]):''}</div>${th(x.oi[j],'o',i,j)}`;
     o+=`<div class="mut">Select the radio button next to the correct answer.</div></div>`;
   });
-  o+=`<div class="row"><button class="sec" onclick="addQ()">+ Add question</button><button class="sec" onclick="saveTest(false)">Save as draft</button><button onclick="saveTest(true)">Save &amp; publish</button><button class="sec" onclick="home()">Cancel</button></div>`;
+  o+=`<div class="row"><button class="sec" onclick="addQ()">+ Add question</button>${draft.id?'<button onclick="saveTest(draft.pub)">Save changes</button>':'<button class="sec" onclick="saveTest(false)">Save as draft</button><button onclick="saveTest(true)">Save &amp; publish</button>'}<button class="sec" onclick="home()">Cancel</button></div>`;
   h(o);if(keep)window.scrollTo(0,y);
 }
 function addQ(){sync();draft.qs.push(blankQ());drawBuilder();window.scrollTo(0,document.body.scrollHeight)}
@@ -693,6 +709,7 @@ async function saveTest(pub){
     for(let j=0;j<4;j++)if(!(x.o[j].trim()||x.oi[j]))return alert('Every option needs text or an image.');
   }
   const d={title:draft.title.trim(),section:draft.section,mins:draft.mins,published:!!pub,deadline:draft.deadline?new Date(draft.deadline).getTime():0,created:Date.now(),questions:draft.qs.map(x=>({q:x.q.trim(),qi:x.qi||'',options:x.o.map(v=>v.trim()),oi:x.oi.map(v=>v||''),answer:x.a}))};
+  if(draft.id)return saveEdit(d);
   const parts=[];let cu=[],sz=0;
   for(const qq of d.questions){const l=JSON.stringify(qq).length;if(l>800000)return alert('One question has a picture that is too large.');if(sz+l>800000&&cu.length){parts.push(cu);cu=[];sz=0}cu.push(qq);sz+=l}
   if(cu.length)parts.push(cu);
@@ -864,7 +881,7 @@ function drawResults(){
   no.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const avg=done.length?(done.reduce((s,x)=>s+x.res.score,0)/done.length).toFixed(1):'–';
   let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(t.title)}</h1><p class="mut">${esc(t.section||'')} · ${t.questions.length} questions · ${durMin(t)} min</p>
-  <div class="row" style="margin:8px 0"><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
+  <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1d4ed8">●</span> Blue = attempted (tap for test analysis) &nbsp; <span style="color:#8b0000">●</span> Dark red = not attempted</p><div>`;
   const topS=done.length?done[0].res.score:null;
   done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
