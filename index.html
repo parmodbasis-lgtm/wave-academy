@@ -28,7 +28,7 @@ input[type=text],input[type=number],input[type=password],input[type=tel],input[t
 textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;margin:8px 0}.oimg{max-width:100%;max-height:160px;border-radius:6px;display:block;margin-top:6px}.pv{padding:2px 4px;overflow-x:auto}.mkbar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:6;padding:4px 0}.mkgrid{display:flex;flex-wrap:wrap;gap:6px;max-height:30vh;overflow-y:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px;margin-top:6px}.mkb{padding:6px 10px;background:var(--ac2);color:var(--ac);min-width:40px}
 .pill{border-radius:20px;padding:9px 14px;color:#fff;margin:4px 6px 4px 0}.pill.ok{background:#1d4ed8}.pill.no{background:#8b0000}.pill.stk{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;position:relative;margin:0 0 12px;padding:10px 16px;font:600 26px/1.2 'Caveat','Segoe Script','Bradley Hand',cursive;color:#fff;border:0;text-align:left;border-radius:16px}.pill.stk .sc{font-size:22px;white-space:nowrap}.pill.stk .st{position:absolute;top:-10px;right:-4px;font-size:24px;line-height:1}.gbox{background:linear-gradient(135deg,#fff3b0 0%,#f5c518 30%,#c99700 55%,#ffe27a 80%,#e0aa00 100%);color:#3a2800;border-radius:16px;border:1px solid #b88a00;box-shadow:0 2px 6px rgba(120,90,0,.35),inset 0 1px 2px rgba(255,255,255,.7);min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px 4px}.gbox .big{font-size:28px;font-weight:800;color:#3a2800}.gbox .l{font-size:14px;font-weight:600;margin-top:4px;line-height:1.25}.nvbar{display:flex;flex-wrap:wrap;gap:6px}.nv{min-width:40px;padding:8px 0;background:var(--card);color:var(--tx);border:1px solid var(--bd)}.nv.dn{background:var(--ac);color:#fff;border-color:var(--ac)}.nv.cu{outline:2px solid var(--tx);outline-offset:1px}
 #pp{display:none}
-.mut{color:#c9d3f5}.card,.timer,.idl,.p3d,.opt,.mkgrid,.qb{color:var(--tx)}.card .mut,.idl .mut,.p3d .mut,.timer .mut,.opt .mut{color:var(--mut)}
+.mut{color:#c9d3f5}.card,.timer,.idl,.p3d,.opt,.mkgrid{color:var(--tx)}.qb{color:#fff}.qb button.del{color:#ff9a8f}.pv{color:#ffd84a;font-weight:700}.pv .katex{font-weight:700}.card .mut,.idl .mut,.p3d .mut,.timer .mut,.opt .mut{color:var(--mut)}
 button:not(.del):not(.nv):not(.pill):not(.mkb){background:linear-gradient(135deg,#f0c63c 0%,#c99700 45%,#a67c00 70%,#e0aa00 100%);color:#fff;border:1px solid #8f6a00;text-shadow:0 1px 2px rgba(50,32,0,.8);font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.45)}
 button:disabled{opacity:.5}
 .p3d{background:linear-gradient(145deg,#ffffff,#cfe0d5);border-radius:22px;padding:14px 12px 10px;margin:8px 0 4px;border:1px solid #bcd0c4;box-shadow:9px 9px 18px rgba(0,0,0,.45),-4px -4px 12px rgba(255,255,255,.18),inset 0 1px 3px #fff,inset 0 -3px 6px rgba(0,0,0,.08)}
@@ -42,6 +42,7 @@ button:disabled{opacity:.5}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <main id="app"><p class="mut">Loading…</p></main><div id="pp"></div>
@@ -423,8 +424,123 @@ const impCard=()=>`<div class="card"><h2 style="margin-bottom:4px">📄 Import f
 (d) Option four
 Answer: B
 
-2. Next question...</pre><p class="mut">Put equations between $ signs, like $F = ma$, or insert them as pictures. Equations made with Word's own equation box are not read.</p></details></div>`;
-function htmlToLines(html){
+2. Next question...</pre><p class="mut">Put equations between $ signs, like $F = ma$, or insert them as pictures. Equations made with Word's equation box (Insert → Equation) are read automatically.</p></details></div>`;
+/* ===== Word equations (OMML) -> LaTeX, so equations come in exactly as typed ===== */
+const OM_NS='http://schemas.openxmlformats.org/officeDocument/2006/math',W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const OM_SYM={'α':'\\alpha ','β':'\\beta ','γ':'\\gamma ','δ':'\\delta ','ε':'\\varepsilon ','ϵ':'\\epsilon ','ζ':'\\zeta ','η':'\\eta ','θ':'\\theta ','ϑ':'\\vartheta ','ι':'\\iota ','κ':'\\kappa ','λ':'\\lambda ','μ':'\\mu ','ν':'\\nu ','ξ':'\\xi ','π':'\\pi ','ρ':'\\rho ','σ':'\\sigma ','ς':'\\varsigma ','τ':'\\tau ','υ':'\\upsilon ','φ':'\\varphi ','ϕ':'\\phi ','χ':'\\chi ','ψ':'\\psi ','ω':'\\omega ','Γ':'\\Gamma ','Δ':'\\Delta ','Θ':'\\Theta ','Λ':'\\Lambda ','Ξ':'\\Xi ','Π':'\\Pi ','Σ':'\\Sigma ','Φ':'\\Phi ','Ψ':'\\Psi ','Ω':'\\Omega ','∂':'\\partial ','∇':'\\nabla ','∞':'\\infty ','±':'\\pm ','∓':'\\mp ','×':'\\times ','÷':'\\div ','·':'\\cdot ','⋅':'\\cdot ','∘':'\\circ ','≤':'\\le ','≥':'\\ge ','≠':'\\ne ','≈':'\\approx ','≡':'\\equiv ','∝':'\\propto ','∼':'\\sim ','≪':'\\ll ','≫':'\\gg ','→':'\\to ','←':'\\leftarrow ','↔':'\\leftrightarrow ','⇒':'\\Rightarrow ','⇔':'\\Leftrightarrow ','⟹':'\\Longrightarrow ','↑':'\\uparrow ','↓':'\\downarrow ','∈':'\\in ','∉':'\\notin ','⊂':'\\subset ','⊃':'\\supset ','∪':'\\cup ','∩':'\\cap ','∀':'\\forall ','∃':'\\exists ','∅':'\\emptyset ','√':'\\surd ','∑':'\\sum ','∏':'\\prod ','∫':'\\int ','°':'^{\\circ}','′':"'",'″':"''",'ℏ':'\\hbar ','ħ':'\\hbar ','ℓ':'\\ell ','Å':'\\text{Å}','…':'\\ldots ','⋯':'\\cdots ','⋮':'\\vdots ','∠':'\\angle ','⊥':'\\perp ','∥':'\\parallel ','−':'-','–':'-','‐':'-','∗':'*','⁄':'/','\u00a0':' ','\u2009':' ','\u200a':' ','\u2061':'','\u2062':'','\u2063':'','\u2064':'','ℝ':'\\mathbb{R}','ℂ':'\\mathbb{C}','ℕ':'\\mathbb{N}','ℤ':'\\mathbb{Z}','ℚ':'\\mathbb{Q}','⃗':'','⟨':'\\langle ','⟩':'\\rangle ','⌊':'\\lfloor ','⌋':'\\rfloor ','⌈':'\\lceil ','⌉':'\\rceil ','‖':'\\| ','∣':'|','⊕':'\\oplus ','⊗':'\\otimes ','∴':'\\therefore ','∵':'\\because ','‰':'\\permil '};
+function omText(s){
+  let o='';
+  for(const c of s){
+    if(OM_SYM[c]!==undefined)o+=OM_SYM[c];
+    else if(c==='{'||c==='}')o+='\\'+c;
+    else if(c==='\\')o+='\\backslash ';
+    else if(c==='#'||c==='%'||c==='$')o+='\\'+c;
+    else if(c==='_')o+='\\_';
+    else if(c==='~')o+='\\sim ';
+    else if(c===' '||c==='\t'||c==='\n')o+='';
+    else o+=c;
+  }
+  return o;
+}
+const OM_FN=new Set(['sin','cos','tan','cot','sec','csc','arcsin','arccos','arctan','sinh','cosh','tanh','coth','log','ln','lg','exp','lim','max','min','sup','inf','det','dim','gcd','deg','arg','ker','hom','Pr','mod']);
+const OM_ACC={'\u0302':'hat','^':'hat','\u0303':'tilde','~':'tilde','\u0304':'bar','\u00af':'bar','\u0305':'overline','\u0307':'dot','\u0308':'ddot','\u20d7':'vec','\u2192':'vec','\u20d6':'overleftarrow','\u030c':'check','\u0301':'acute','\u0300':'grave','\u0306':'breve'};
+const OM_NARY={'∑':'\\sum','∏':'\\prod','∫':'\\int','∬':'\\iint','∭':'\\iiint','∮':'\\oint','⋃':'\\bigcup','⋂':'\\bigcap'};
+const OM_DEL={'(':'(',')':')','[':'[',']':']','{':'\\{','}':'\\}','|':'|','‖':'\\|','⟨':'\\langle','⟩':'\\rangle','⌊':'\\lfloor','⌋':'\\rfloor','⌈':'\\lceil','⌉':'\\rceil','':'.'};
+function omToLatex(root){
+  const kids=n=>Array.from(n.childNodes).filter(c=>c.nodeType===1);
+  const ch=(n,name)=>kids(n).find(c=>c.localName===name);
+  const val=(n,name)=>{const p=n&&kids(n).find(c=>/Pr$/.test(c.localName));const e=p&&ch(p,name);return e?(e.getAttributeNS(OM_NS,'val')??e.getAttribute('m:val')):null};
+  const cv=n=>kids(n).map(conv).join('');
+  const sub=(n,name)=>{const c=ch(n,name);return c?cv(c):''};
+  const br=s=>'{'+s+'}';
+  function conv(n){
+    switch(n.localName){
+      case 'r':{
+        let t='';kids(n).forEach(c=>{if(c.localName==='t')t+=c.textContent});
+        const pr=ch(n,'rPr'),nor=pr&&ch(pr,'nor'),sty=pr&&ch(pr,'sty'),s=sty&&(sty.getAttributeNS(OM_NS,'val')||sty.getAttribute('m:val'));
+        if(nor&&(nor.getAttributeNS(OM_NS,'val')||nor.getAttribute('m:val')||'1')!=='0')return '\\text{'+t.replace(/[{}\\$#%&_~^]/g,'')+'}';
+        const x=omText(t);
+        if(s==='p'&&/^[A-Za-z]{2,}$/.test(t))return OM_FN.has(t)?'\\'+t+' ':'\\mathrm{'+t+'}';
+        if(s==='p'&&/^[A-Za-z]$/.test(t))return '\\mathrm{'+t+'}';
+        if(s==='b'||s==='bi')return '\\mathbf{'+x+'}';
+        return x;
+      }
+      case 'f':{
+        const ty=val(n,'type'),a=sub(n,'num'),b=sub(n,'den');
+        if(ty==='lin')return br(a)+'/'+br(b);
+        if(ty==='noBar')return '\\binom'+br(a)+br(b);
+        return '\\frac'+br(a)+br(b);
+      }
+      case 'sSup':return br(sub(n,'e'))+'^'+br(sub(n,'sup'));
+      case 'sSub':return br(sub(n,'e'))+'_'+br(sub(n,'sub'));
+      case 'sSubSup':return br(sub(n,'e'))+'_'+br(sub(n,'sub'))+'^'+br(sub(n,'sup'));
+      case 'sPre':return br('')+'_'+br(sub(n,'sub'))+'^'+br(sub(n,'sup'))+br(sub(n,'e'));
+      case 'rad':{
+        const hide=val(n,'degHide'),d=sub(n,'deg'),e=sub(n,'e');
+        return (hide==='1'||hide==='on'||!d)?'\\sqrt'+br(e):'\\sqrt['+d+']'+br(e);
+      }
+      case 'nary':{
+        const c=val(n,'chr'),op=c===null?'\\int':(OM_NARY[c]||omText(c)),sb=sub(n,'sub'),sp=sub(n,'sup'),hs=val(n,'subHide'),hp=val(n,'supHide');
+        let o=op+(/\\(int|iint|iiint|oint)$/.test(op)?'':'\\limits');
+        if(sb&&hs!=='1')o+='_'+br(sb);
+        if(sp&&hp!=='1')o+='^'+br(sp);
+        return o+' '+br(sub(n,'e'));
+      }
+      case 'd':{
+        const b=val(n,'begChr'),e=val(n,'endChr'),s=val(n,'sepChr');
+        const L=b===null?'(':(OM_DEL[b]!==undefined?OM_DEL[b]:omText(b)),R=e===null?')':(OM_DEL[e]!==undefined?OM_DEL[e]:omText(e)),S=s===null?'|':(OM_DEL[s]!==undefined?OM_DEL[s]:omText(s));
+        return '\\left'+L+kids(n).filter(c=>c.localName==='e').map(cv).join(S)+'\\right'+R;
+      }
+      case 'acc':{
+        const c=val(n,'chr'),cmd=c===null?'hat':(OM_ACC[c]||'hat');
+        return '\\'+cmd+br(sub(n,'e'));
+      }
+      case 'bar':return (val(n,'pos')==='bot'?'\\underline':'\\overline')+br(sub(n,'e'));
+      case 'func':{
+        const nm=sub(n,'fName'),plain=nm.replace(/\\mathrm\{([^}]*)\}/g,'$1').replace(/[\\ ]/g,'');
+        const f=OM_FN.has(plain)?'\\'+plain+' ':(/^[A-Za-z]+$/.test(plain)?'\\operatorname'+br(plain):nm);
+        return f+' '+br(sub(n,'e'));
+      }
+      case 'limLow':{
+        const e=sub(n,'e'),l=sub(n,'lim');
+        return /^\\(lim|max|min|sup|inf)\s*$/.test(e.trim())?e.trim()+'_'+br(l):'\\underset'+br(l)+br(e);
+      }
+      case 'limUpp':return '\\overset'+br(sub(n,'lim'))+br(sub(n,'e'));
+      case 'groupChr':{const c=val(n,'chr'),pos=val(n,'pos');return (c==='⏞'||pos==='top'?'\\overbrace':'\\underbrace')+br(sub(n,'e'))}
+      case 'eqArr':return '\\begin{aligned}'+kids(n).filter(c=>c.localName==='e').map(cv).join('\\\\ ')+'\\end{aligned}';
+      case 'm':return '\\begin{matrix}'+kids(n).filter(c=>c.localName==='mr').map(r=>kids(r).filter(c=>c.localName==='e').map(cv).join(' & ')).join('\\\\ ')+'\\end{matrix}';
+      case 'rPr':case 'ctrlPr':case 'fPr':case 'dPr':case 'naryPr':case 'radPr':case 'accPr':case 'funcPr':case 'barPr':case 'limLowPr':case 'limUppPr':case 'sSupPr':case 'sSubPr':case 'sSubSupPr':case 'sPrePr':case 'mPr':case 'eqArrPr':case 'groupChrPr':case 'boxPr':case 'phantPr':case 'oMathParaPr':return '';
+      default:return cv(n);
+    }
+  }
+  return cv(root).replace(/\s{2,}/g,' ').trim();
+}
+/* Replace every Word equation in the .docx with its LaTeX written between $ signs, so the normal importer reads it */
+async function docxPre(buf){
+  if(typeof JSZip==='undefined')return {buf,n:0,bad:0};
+  const z=await JSZip.loadAsync(buf),f=z.file('word/document.xml');if(!f)return {buf,n:0,bad:0};
+  const xml=await f.async('string');
+  if(xml.indexOf('oMath')<0)return {buf,n:0,bad:0};
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length)return {buf,n:0,bad:0};
+  let n=0,bad=0;
+  const mk=tex=>{const r=doc.createElementNS(W_NS,'w:r'),t=doc.createElementNS(W_NS,'w:t');t.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:space','preserve');t.textContent=tex;r.appendChild(t);return r};
+  const conv=el=>{let tex='';try{tex=omToLatex(el)}catch(e){bad++}return tex};
+  const paras=Array.from(doc.getElementsByTagNameNS(OM_NS,'oMathPara'));
+  paras.forEach(p=>{
+    const parts=Array.from(p.childNodes).filter(c=>c.nodeType===1&&c.localName==='oMath').map(conv).filter(Boolean);
+    if(!parts.length){p.parentNode.removeChild(p);return}
+    n+=parts.length;p.parentNode.replaceChild(mk(' $'+parts.join('$ $')+'$ '),p);
+  });
+  Array.from(doc.getElementsByTagNameNS(OM_NS,'oMath')).forEach(m=>{
+    const tex=conv(m);if(!tex){m.parentNode.removeChild(m);return}
+    n++;m.parentNode.replaceChild(mk('$'+tex+'$'),m);
+  });
+  z.file('word/document.xml',new XMLSerializer().serializeToString(doc));
+  return {buf:await z.generateAsync({type:'arraybuffer'}),n,bad};
+}
+
+function htmlToLines(html,num){
   const doc=new DOMParser().parseFromString('<body>'+html+'</body>','text/html'),lines=[];
   const txt=n=>{
     if(n.nodeType===3)return n.nodeValue;
@@ -437,8 +553,10 @@ function htmlToLines(html){
     if(g==='SUB')return s.trim()?'$_{'+s.trim()+'}$':'';
     return s;
   };
+  const ctr=[];let pend='';
   const lineOf=(nodes,li)=>{
-    const t=nodes.map(txt).join('').replace(/[ \t\r\n ]+/g,' ').trim(),im=[];
+    let t=nodes.map(txt).join('').replace(/[ \t\r\n ]+/g,' ').trim();const im=[];
+    if(pend&&t){if(!/^(?:q(?:uestion)?\.?\s*)?\d{1,3}\s*[\.\)\:\-]|^\(?[A-Da-d]\s*[\.\)]/i.test(t))t=pend+t;pend=''}
     nodes.forEach(n=>{if(n.nodeType!==1)return;if(n.tagName==='IMG'){im.push(n.getAttribute('src')||'')}else n.querySelectorAll('img').forEach(i=>im.push(i.getAttribute('src')||''))});
     const ims=im.filter(Boolean);
     if(t||ims.length)lines.push({t,im:ims,li});
@@ -447,13 +565,14 @@ function htmlToLines(html){
     Array.from(p.childNodes).forEach(c=>{
       if(c.nodeType!==1)return;
       const g=c.tagName;
-      if(g==='UL'||g==='OL')return walk(c,true);
+      if(g==='UL'||g==='OL'){if(num&&g==='OL')ctr.push(0);walk(c,true);if(num&&g==='OL')ctr.pop();return}
       if(g==='LI'){
+        if(num&&ctr.length){const k=++ctr[ctr.length-1];pend=ctr.length===1?k+'. ':'('+'abcdefgh'[Math.min(k-1,7)]+') '}
         const inl=[],lst=[];
         Array.from(c.childNodes).forEach(x=>{if(x.nodeType===1&&(x.tagName==='UL'||x.tagName==='OL'))lst.push(x);else inl.push(x)});
         const hasBlk=inl.some(x=>x.nodeType===1&&/^(P|DIV|TABLE)$/.test(x.tagName));
         if(hasBlk){const w=doc.createElement('div');inl.forEach(x=>w.appendChild(x.cloneNode(true)));walk(w,true)}else lineOf(inl,true);
-        lst.forEach(l=>walk(l,true));
+        lst.forEach(l=>{const o=num&&l.tagName==='OL';if(o)ctr.push(0);walk(l,true);if(o)ctr.pop()});
         return;
       }
       if(c.querySelector('p,ul,ol,li,table,div'))return walk(c,li);
@@ -503,11 +622,14 @@ async function importDocx(inp){
   st.textContent='Reading your file…';
   try{
     let skipped=0;
-    const r=await mammoth.convertToHtml({arrayBuffer:await f.arrayBuffer()},{convertImage:mammoth.images.imgElement(img=>img.read('base64').then(b=>{
+    const ab=await f.arrayBuffer();let eq={n:0,bad:0},use=ab;
+    try{eq=await docxPre(ab);use=eq.buf}catch(e){eq={n:0,bad:0};use=ab}
+    const r=await mammoth.convertToHtml({arrayBuffer:use},{convertImage:mammoth.images.imgElement(img=>img.read('base64').then(b=>{
       if(!/^image\/(png|jpe?g|gif|bmp|webp)$/.test(img.contentType)){skipped++;return {src:''}}
       return {src:'data:'+img.contentType+';base64,'+b};
     }))});
-    const qs=parseLines(htmlToLines(r.value));
+    const L0=htmlToLines(r.value);let qs=parseLines(L0);
+    if(!L0.some(l=>/^(?:q(?:uestion)?\.?\s*)?\d{1,3}\s*[\.\)\:\-](?!\d)/i.test(l.t||''))&&L0.some(l=>l.li)){const q2=parseLines(htmlToLines(r.value,true));if(q2.length>=qs.length)qs=q2}
     if(!qs.length){st.textContent='No questions found. Please check the format shown below.';return}
     st.textContent='Processing pictures…';
     for(const x of qs){
@@ -523,6 +645,7 @@ async function importDocx(inp){
       +(noA?'<br>⚠ '+noA+' question(s) have no answer: select the correct option for each one marked in red.':'')
       +(few?'<br>⚠ '+few+' question(s) have fewer than 4 options: fill in the empty options.':'')
       +(ext?'<br>⚠ '+ext+' question(s) had more than 4 options: only the first 4 were kept.':'')
+      +(eq.n?'<br>∑ '+eq.n+' equation(s) converted from Word. Please glance at them in the preview below.':'')+(eq.bad?'<br>⚠ '+eq.bad+' equation(s) could not be converted: please retype them.':'')
       +(skipped?'<br>⚠ '+skipped+' picture(s) could not be read (Word drawings): insert them again as normal pictures.':'');
     drawBuilder();
   }catch(e){st.textContent='Could not read this file: '+(e.message||e)}
