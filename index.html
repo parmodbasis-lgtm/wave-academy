@@ -183,9 +183,10 @@ function home(){normMine();
   }
   const tb=(k,l)=>`<button class="${stab===k?'':'sec'}" onclick="stab='${k}';home()">${l}</button>`;
   let o=hd+banner();
-  if(isTeacher)o+=`<button class="sec" onclick="sec=null;home()">← All sections</button><h2 style="margin:14px 0 8px">${esc(sec)}</h2><div class="row" style="margin-bottom:8px">${tb('tests','Tests')}${tb('stu','Students')}</div>`;
-  else o+=`<div class="row sp" style="margin:6px 0"><h2 style="margin:0">${esc(sec)}</h2><button class="sec" onclick="progress()">📊 My progress</button></div>`;
+  if(isTeacher)o+=`<button class="sec" onclick="sec=null;home()">← All sections</button><h2 style="margin:14px 0 8px">${esc(sec)}</h2><div class="row" style="margin-bottom:8px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Videos'):''}${tb('stu','Students')}</div>`;
+  else o+=`<div class="row sp" style="margin:6px 0"><h2 style="margin:0">${esc(sec)}</h2><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${isVidSec(sec)?'<button onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" onclick="progress()">📊 My progress</button></span></div>`;
   if(isTeacher&&stab==='stu')return sectionStudents(o);
+  if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   if(isTeacher)o+=`<button onclick="builder()">+ Create new test</button>`;
   const ts=tests.filter(t=>(t.section||'Other')===sec);
   if(!ts.length)o+=`<div class="card mut">No tests in this section yet.</div>`;
@@ -202,28 +203,197 @@ function home(){normMine();
   });
   h(o);
 }
+/* ===== Video lectures (Physics XI / XII) ===== */
+const isVidSec=s=>s==='Physics XI'||s==='Physics XII';
+const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let lc={chs:[],lecs:[],acc:{},edit:null};
+const LOCKMSG='This lecture is available to authorized students only.';
+function ytId(u){
+  u=(u||'').trim();let m='';
+  if(/^[\w-]{11}$/.test(u))return u;
+  try{
+    const x=new URL(/^https?:\/\//i.test(u)?u:'https://'+u),hn=x.hostname.replace(/^(www|m|music)\./,'');
+    if(hn==='youtu.be')m=x.pathname.slice(1).split('/')[0];
+    else if(hn==='youtube.com'||hn==='youtube-nocookie.com'){
+      if(x.pathname==='/watch')m=x.searchParams.get('v')||'';
+      else{const p=x.pathname.split('/');if(['embed','shorts','live','v'].includes(p[1]))m=p[2]||''}
+    }
+  }catch(e){}
+  return /^[\w-]{11}$/.test(m||'')?m:'';
+}
+async function lecLoad(admin){
+  const q=c=>{let r=db.collection(c).where('section','==',sec);if(c==='lectures'&&!admin)r=r.where('published','==',true);return r.get()};
+  const [c,l]=await Promise.all([q('chapters'),q('lectures')]);
+  lc.chs=c.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+  lc.lecs=l.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+}
+const lecsOf=(cid,tid)=>lc.lecs.filter(l=>l.chapterId===cid&&l.topicId===tid).sort((a,b)=>(a.order||0)-(b.order||0));
+const lecErr=e=>'<div class="card">Could not load: '+esc(e.message||e)+'. Make sure you published the latest Firebase rules.</div><button onclick="home()">Back</button>';
+
+/* ---------- Admin ---------- */
+async function lecAdminIn(o){
+  h(o+'<p class="mut">Loading…</p>');
+  try{await lecLoad(true)}catch(e){return h(o+lecErr(e))}
+  let s=`<p class="mut">Add chapters and topics for ${esc(sec)}, then add YouTube lectures to each topic.</p><div class="card"><div class="row"><input type="text" id="chn" placeholder="New chapter name" style="flex:1"><button onclick="addChapter()">+ Chapter</button></div></div>`;
+  lc.chs.forEach(ch=>{
+    s+=`<div class="card"><div class="row sp"><b>${esc(ch.name)}</b><span><button class="sec" onclick="renChapter('${ch.id}')">✏️</button> <button class="del" onclick="delChapter('${ch.id}')">🗑</button></span></div>`;
+    (ch.topics||[]).forEach(tp=>{
+      const n=lecsOf(ch.id,tp.id).length;
+      s+=`<div class="row sp" style="margin-top:8px"><button class="sec" style="flex:1;text-align:left" onclick="topicAdmin('${ch.id}','${tp.id}')">${esc(tp.name)} · ${n} video${n===1?'':'s'} ›</button><button class="sec" onclick="renTopic('${ch.id}','${tp.id}')">✏️</button><button class="del" onclick="delTopic('${ch.id}','${tp.id}')">🗑</button></div>`;
+    });
+    s+=`<div class="row" style="margin-top:10px"><input type="text" id="tn_${ch.id}" placeholder="New topic name" style="flex:1"><button class="sec" onclick="addTopic('${ch.id}')">+ Topic</button></div></div>`;
+  });
+  if(!lc.chs.length)s+='<div class="card mut">No chapters yet. Add your first chapter above.</div>';
+  h(o+s);
+}
+const lecDone=async()=>{stab='vid';home()};
+async function addChapter(){
+  const n=document.getElementById('chn').value.trim();if(!n)return;
+  try{await db.collection('chapters').doc(nid()).set({section:sec,name:n,order:Math.max(0,...lc.chs.map(c=>c.order||0))+1,topics:[],created:Date.now()});lecDone()}catch(e){alert('Could not add: '+(e.message||e))}
+}
+async function renChapter(id){
+  const c=lc.chs.find(x=>x.id===id),n=(prompt('Chapter name',c.name)||'').trim();if(!n)return;
+  try{await db.collection('chapters').doc(id).update({name:n});lecDone()}catch(e){alert('Could not rename: '+(e.message||e))}
+}
+async function delLecs(list){for(const l of list){await db.collection('lectureSrc').doc(l.id).delete();await db.collection('lectures').doc(l.id).delete()}}
+async function delChapter(id){
+  const c=lc.chs.find(x=>x.id===id),ls=lc.lecs.filter(l=>l.chapterId===id);
+  if(!confirm('Delete chapter "'+c.name+'" with all its topics and '+ls.length+' video(s)? This cannot be undone.'))return;
+  try{await delLecs(ls);await db.collection('chapters').doc(id).delete();lecDone()}catch(e){alert('Could not delete: '+(e.message||e))}
+}
+async function addTopic(cid){
+  const n=document.getElementById('tn_'+cid).value.trim();if(!n)return;
+  const c=lc.chs.find(x=>x.id===cid);
+  try{await db.collection('chapters').doc(cid).update({topics:(c.topics||[]).concat([{id:nid(),name:n}])});lecDone()}catch(e){alert('Could not add: '+(e.message||e))}
+}
+async function renTopic(cid,tid){
+  const c=lc.chs.find(x=>x.id===cid),t=c.topics.find(x=>x.id===tid),n=(prompt('Topic name',t.name)||'').trim();if(!n)return;
+  try{await db.collection('chapters').doc(cid).update({topics:c.topics.map(x=>x.id===tid?{...x,name:n}:x)});lecDone()}catch(e){alert('Could not rename: '+(e.message||e))}
+}
+async function delTopic(cid,tid){
+  const c=lc.chs.find(x=>x.id===cid),t=c.topics.find(x=>x.id===tid),ls=lecsOf(cid,tid);
+  if(!confirm('Delete topic "'+t.name+'" and its '+ls.length+' video(s)? This cannot be undone.'))return;
+  try{await delLecs(ls);await db.collection('chapters').doc(cid).update({topics:c.topics.filter(x=>x.id!==tid)});lecDone()}catch(e){alert('Could not delete: '+(e.message||e))}
+}
+function topicAdmin(cid,tid,pre){
+  const ch=lc.chs.find(x=>x.id===cid),tp=ch&&ch.topics.find(x=>x.id===tid);if(!tp)return lecDone();
+  const ls=lecsOf(cid,tid),ed=lc.edit?lc.lecs.find(l=>l.id===lc.edit):null,p=pre||{title:ed?ed.title:'',url:'',free:ed?!!ed.free:false,pub:ed?!!ed.published:true};
+  let o=`<button class="sec" onclick="lc.edit=null;lecDone()">← Back</button><h1 style="margin-top:12px">${esc(tp.name)}</h1><p class="mut">${esc(sec)} · ${esc(ch.name)}</p>`;
+  ls.forEach((l,i)=>{
+    o+=`<div class="card"><b>${i+1}. ${esc(l.title)}</b><div class="mut" style="margin:4px 0">${l.free?'🆓 Free':'⭐ Premium'} · ${l.published?'Published':'Draft (hidden from students)'}</div><div class="row"><button class="sec" onclick="moveLec('${cid}','${tid}','${l.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="sec" onclick="moveLec('${cid}','${tid}','${l.id}',1)" ${i===ls.length-1?'disabled':''}>↓</button><button class="sec" onclick="editLec('${cid}','${tid}','${l.id}')">Edit</button><button onclick="togglePubLec('${cid}','${tid}','${l.id}',${!l.published})">${l.published?'Unpublish':'Publish'}</button><button class="del" onclick="delLec('${cid}','${tid}','${l.id}')">Delete</button></div></div>`;
+  });
+  if(!ls.length)o+='<div class="card mut">No videos in this topic yet.</div>';
+  o+=`<div class="card"><h2 style="margin-top:0">${ed?'Edit video':'Add video'}</h2><label class="mut">Video title</label><input type="text" id="lt" value="${esc(p.title)}" placeholder="e.g. Newton’s laws – Part 1"><label class="mut">YouTube link</label><input type="text" id="lu" value="${esc(p.url)}" placeholder="Paste the YouTube link${ed?' (leave unchanged to keep the video)':''}"><label class="mut">Access</label><select id="lm"><option value="premium" ${p.free?'':'selected'}>⭐ Premium (authorized students only)</option><option value="free" ${p.free?'selected':''}>🆓 Free (all students of this class)</option></select><label class="mut">Visibility</label><select id="lp"><option value="1" ${p.pub?'selected':''}>Published</option><option value="0" ${p.pub?'':'selected'}>Draft (hidden)</option></select><p id="lme" style="color:var(--bad);margin:6px 0"></p><div class="row"><button onclick="saveLec('${cid}','${tid}')">${ed?'Save changes':'Add video'}</button>${ed?`<button class="sec" onclick="lc.edit=null;topicAdmin('${cid}','${tid}')">Cancel</button>`:''}</div></div>`;
+  h(o);
+}
+async function editLec(cid,tid,lid){
+  lc.edit=lid;const l=lc.lecs.find(x=>x.id===lid);let url='';
+  try{const d=await db.collection('lectureSrc').doc(lid).get();if(d.exists)url='https://youtu.be/'+d.data().vid}catch(e){}
+  topicAdmin(cid,tid,{title:l.title,url,free:!!l.free,pub:!!l.published});
+}
+async function saveLec(cid,tid){
+  const g=id=>document.getElementById(id).value,err=s=>{document.getElementById('lme').textContent=s};
+  const title=g('lt').trim(),raw=g('lu').trim(),free=g('lm')==='free',pub=g('lp')==='1',lid=lc.edit;
+  if(!title)return err('Please enter a video title.');
+  let vid='';
+  if(raw){vid=ytId(raw);if(!vid)return err('This does not look like a valid YouTube link.')}
+  else if(!lid)return err('Please paste the YouTube link.');
+  try{
+    if(lid){
+      if(vid)await db.collection('lectureSrc').doc(lid).set({section:sec,vid});
+      await db.collection('lectures').doc(lid).update({title,free,published:pub});
+    }else{
+      const id=nid(),ord=Math.max(0,...lecsOf(cid,tid).map(l=>l.order||0))+1;
+      await db.collection('lectureSrc').doc(id).set({section:sec,vid});
+      await db.collection('lectures').doc(id).set({section:sec,chapterId:cid,topicId:tid,title,order:ord,free,published:pub,created:Date.now()});
+    }
+    lc.edit=null;await lecLoad(true);topicAdmin(cid,tid);
+  }catch(e){err('Could not save: '+(e.message||e))}
+}
+async function moveLec(cid,tid,lid,dir){
+  const ls=lecsOf(cid,tid),i=ls.findIndex(l=>l.id===lid),j=i+dir;if(i<0||j<0||j>=ls.length)return;
+  const a=ls.slice();[a[i],a[j]]=[a[j],a[i]];
+  try{for(let k=0;k<a.length;k++)if(a[k].order!==k+1)await db.collection('lectures').doc(a[k].id).update({order:k+1});await lecLoad(true);topicAdmin(cid,tid)}catch(e){alert('Could not reorder: '+(e.message||e))}
+}
+async function togglePubLec(cid,tid,lid,v){
+  try{await db.collection('lectures').doc(lid).update({published:v});await lecLoad(true);topicAdmin(cid,tid)}catch(e){alert('Could not change: '+(e.message||e))}
+}
+async function delLec(cid,tid,lid){
+  if(!confirm('Delete this video? This cannot be undone.'))return;
+  try{await delLecs([{id:lid}]);await lecLoad(true);topicAdmin(cid,tid)}catch(e){alert('Could not delete: '+(e.message||e))}
+}
+
+/* ---------- Student ---------- */
+async function lecStudent(){
+  h('<p class="mut">Loading lectures…</p>');
+  try{
+    lc.acc={};
+    await Promise.all([lecLoad(false),db.collection('access').doc(uid).get().then(d=>{lc.acc=d.exists?d.data():{}}).catch(()=>{})]);
+  }catch(e){return h(lecErr(e))}
+  let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">🎬 Video lectures</h1><p class="mut">${esc(sec)}</p>`,any=false;
+  lc.chs.forEach(ch=>{
+    const tps=(ch.topics||[]).filter(t=>lecsOf(ch.id,t.id).length);if(!tps.length)return;any=true;
+    o+=`<div class="card"><b>${esc(ch.name)}</b>`;
+    tps.forEach(t=>{const n=lecsOf(ch.id,t.id).length;o+=`<button class="sec" style="display:block;width:100%;text-align:left;margin-top:8px" onclick="lecTopic('${ch.id}','${t.id}')">${esc(t.name)} · ${n} video${n===1?'':'s'} ›</button>`});
+    o+='</div>';
+  });
+  if(!any)o+='<div class="card mut">No video lectures have been added yet.</div>';
+  h(o);
+}
+const canPrem=()=>lc.acc&&lc.acc.premium===true;
+function lecTopic(cid,tid){
+  const ch=lc.chs.find(x=>x.id===cid),tp=ch&&ch.topics.find(x=>x.id===tid);if(!tp)return lecStudent();
+  let o=`<button class="sec" onclick="lecStudent()">← Back</button><h1 style="margin-top:12px">${esc(tp.name)}</h1><p class="mut">${esc(ch.name)}</p><div id="pl"></div>`;
+  lecsOf(cid,tid).forEach((l,i)=>{
+    const lock=!l.free&&!canPrem();
+    o+=`<div class="card opt" style="display:block;cursor:pointer" onclick="playLec('${l.id}')"><div class="row sp"><b>${lock?'🔒':'▶'} ${i+1}. ${esc(l.title)}</b><span class="mut">${l.free?'Free':(lock?'Premium':'⭐ Premium')}</span></div></div>`;
+  });
+  h(o);
+}
+async function playLec(lid){
+  const l=lc.lecs.find(x=>x.id===lid),pl=document.getElementById('pl');if(!l||!pl)return;
+  const msg=()=>{pl.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:34px">🔒</div><b>${LOCKMSG}</b><p class="mut" style="margin:6px 0 0">Please contact your teacher to get access.</p></div>`;pl.scrollIntoView({behavior:'smooth',block:'nearest'})};
+  if(!l.free&&!canPrem())return msg();
+  pl.innerHTML='<p class="mut">Loading video…</p>';
+  try{
+    const d=await db.collection('lectureSrc').doc(lid).get();
+    if(!d.exists)return msg();
+    pl.innerHTML=`<div class="card"><b>${esc(l.title)}</b><div style="position:relative;padding-top:56.25%;margin-top:8px;background:#000;border-radius:10px;overflow:hidden"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(d.data().vid)}?rel=0&playsinline=1" title="${esc(l.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>`;
+    pl.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){msg()}
+}
+
+/* ---------- Admin: payment & access per student ---------- */
+async function saveAcc(id){
+  const m=document.getElementById('acm'),paid=document.getElementById('acp').value==='1',premium=document.getElementById('acv').value==='1';
+  try{await db.collection('access').doc(id).set({paid,premium,updated:Date.now()});m.style.color='var(--ok)';m.textContent='Saved.'}
+  catch(e){m.style.color='var(--bad)';m.textContent='Could not save: '+(e.message||e)}
+}
+const accCard=(id,a)=>{a=a||{};return `<div class="card"><h2 style="margin-top:0">Premium video lectures</h2><label class="mut">Payment</label><select id="acp"><option value="0" ${a.paid?'':'selected'}>Unpaid</option><option value="1" ${a.paid?'selected':''}>Paid</option></select><label class="mut">Premium video access</label><select id="acv"><option value="0" ${a.premium?'':'selected'}>Access Denied</option><option value="1" ${a.premium?'selected':''}>Access Granted</option></select><div class="row" style="margin-top:8px"><button onclick="saveAcc('${id}')">Save</button></div><p id="acm" style="margin:6px 0 0"></p></div>`};
+
 async function sectionStudents(o){
   h(o+'<p class="mut">Loading…</p>');
   try{
-    const [u,r]=await Promise.all([db.collection('users').where('sec','==',sec).get(),db.collection('results').get()]);
+    const vs=isVidSec(sec),[u,r,ac]=await Promise.all([db.collection('users').where('sec','==',sec).get(),db.collection('results').get(),vs?db.collection('access').get():Promise.resolve({docs:[]})]);
+    const acc={};ac.docs.forEach(d=>acc[d.id]=d.data());
     const ids=tests.filter(t=>t.section===sec&&t.published===true).map(t=>t.id),by={};
     r.docs.forEach(d=>{const x=d.data();if(ids.includes(x.testId))(by[x.uid]=by[x.uid]||[]).push(nr(x))});
     const rows=u.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    let s=`<p class="mut">${rows.length} student${rows.length===1?'':'s'} in ${esc(sec)} · tap a name for the progress report</p><div class="card scroll"><table><tr><th>Name</th><th>Email</th><th>Taken</th><th>Avg</th></tr>`;
+    let s=`<p class="mut">${rows.length} student${rows.length===1?'':'s'} in ${esc(sec)} · tap a name for the progress report</p><div class="card scroll"><table><tr><th>Name</th><th>Email</th><th>Taken</th><th>Avg</th>${vs?'<th>Paid</th><th>Premium</th>':''}</tr>`;
     rows.forEach(x=>{const a=by[x.id]||[],avg=a.length?Math.round(a.reduce((q,z)=>q+z.score/z.total*100,0)/a.length)+'%':'–';
-      s+=`<tr onclick="stuDetail('${x.id}')" style="cursor:pointer"><td><b>${esc(x.name)}</b> ›</td><td>${esc(x.email)}</td><td>${a.length}/${ids.length}</td><td>${avg}</td></tr>`});
-    if(!rows.length)s+='<tr><td colspan="4" class="mut">No students have joined this class yet.</td></tr>';
+      s+=`<tr onclick="stuDetail('${x.id}')" style="cursor:pointer"><td><b>${esc(x.name)}</b> ›</td><td>${esc(x.email)}</td><td>${a.length}/${ids.length}</td><td>${avg}</td>${vs?`<td>${(acc[x.id]||{}).paid?'✅ Paid':'Unpaid'}</td><td>${(acc[x.id]||{}).premium?'✅ Granted':'Denied'}</td>`:''}</tr>`});
+    if(!rows.length)s+='<tr><td colspan="6" class="mut">No students have joined this class yet.</td></tr>';
     h(o+s+'</table></div>');
   }catch(e){h(o+'<div class="card">Could not load students: '+esc(e.message||e)+'. Make sure you published the new Firebase rules.</div>')}
 }
 async function stuDetail(id){
   h('<p class="mut">Loading…</p>');
   try{
-    const [ud,r]=await Promise.all([db.collection('users').doc(id).get(),db.collection('results').where('uid','==',id).get()]);
+    const [ud,r,ad]=await Promise.all([db.collection('users').doc(id).get(),db.collection('results').where('uid','==',id).get(),db.collection('access').doc(id).get().catch(()=>null)]);
     const s=ud.data(),res={};r.docs.forEach(d=>{res[d.data().testId]=d.data()});
     const ts=tests.filter(t=>t.section===s.sec&&t.published===true),tk=ts.filter(t=>res[t.id]);
     const avg=tk.length?Math.round(tk.reduce((q,t)=>q+res[t.id].score/res[t.id].total*100,0)/tk.length):0;
-    let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div><div class="card"><label class="mut">Password</label><button class="sec" onclick="sendReset('${esc(s.email)}')">Send password reset email</button><p id="rsm" class="mut" style="margin:6px 0 0"></p></div>`;
+    let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div>${isVidSec(s.sec)?accCard(id,ad&&ad.exists?ad.data():{}):''}<div class="card"><label class="mut">Password</label><button class="sec" onclick="sendReset('${esc(s.email)}')">Send password reset email</button><p id="rsm" class="mut" style="margin:6px 0 0"></p></div>`;
     ts.forEach(t=>{const x=res[t.id];o+=`<div class="card"><div class="row sp"><b>${esc(t.title)}</b><span>${x?x.score+'/'+x.total:'<span style="color:var(--bad)">Not attempted</span>'}</span></div>${x?`<div class="mut">${new Date(x.at).toLocaleString()}</div>${bar(Math.round(x.score/x.total*100))}${timeChips(t,x)}`:''}</div>`});
     h(o);
   }catch(e){h('<div class="card">Could not load: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
