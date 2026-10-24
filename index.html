@@ -28,6 +28,8 @@ input[type=text],input[type=number],input[type=password],input[type=tel],input[t
 .big{font-size:40px;font-weight:700;color:var(--ac)}
 textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;margin:8px 0}.oimg{max-width:100%;max-height:160px;border-radius:6px;display:block;margin-top:6px}.pv{padding:2px 4px;overflow-x:auto}.mkbar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:6;padding:4px 0}.mkgrid{display:flex;flex-wrap:wrap;gap:6px;max-height:30vh;overflow-y:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px;margin-top:6px}.mkb{padding:6px 10px;background:var(--ac2);color:var(--ac);min-width:40px}
 .pill{border-radius:20px;padding:9px 14px;color:#fff;margin:4px 6px 4px 0}.pill.ok{background:#1f9d55}.pill.no{background:#d64545}.nvbar{display:flex;flex-wrap:wrap;gap:6px}.nv{min-width:40px;padding:8px 0;background:var(--card);color:var(--tx);border:1px solid var(--bd)}.nv.dn{background:var(--ac);color:#fff;border-color:var(--ac)}.nv.cu{outline:2px solid var(--tx);outline-offset:1px}
+#pp{display:none}
+@media print{html,body{background:#fff!important}body>*:not(#pp){display:none!important}#pp{display:block!important;color:#000;background:#fff;font:14px/1.5 Georgia,serif;padding:0}#pp .pq{break-inside:avoid;margin:0 0 14px}#pp .pop{margin:2px 0 2px 18px}#pp img{max-width:100%;max-height:220px}#pp .oimg{max-height:90px}#pp h1{font-size:20px;text-align:center;margin:0}#pp .pc{text-align:center;margin:2px 0}#pp hr{border:0;border-top:1.5px solid #000;margin:8px 0 14px}#pp .pk{break-before:page}#pp table{border-collapse:collapse}#pp td,#pp th{border:1px solid #000;padding:3px 10px}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -37,7 +39,7 @@ textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;ma
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 </head>
 <body>
-<main id="app"><p class="mut">Loading…</p></main>
+<main id="app"><p class="mut">Loading…</p></main><div id="pp"></div>
 <script>
 const $app=document.getElementById('app');
 let db=null,user=null,uid=null,myName='',isTeacher=false,tests=[],mine={},timer=null,draft=null,opened=false,loaded=false,sec=null;
@@ -105,10 +107,37 @@ async function doAuth(){
     await cr.user.sendEmailVerification();
   }catch(x){err(authErr(x.code||''))}
 }
+const PWRULE='Password: at least 6 characters, letters and numbers only, with at least one letter and one number.';
+const pwOk=p=>/^[A-Za-z0-9]{6,}$/.test(p)&&/[A-Za-z]/.test(p)&&/\d/.test(p);
 async function resetPw(){
-  const l=document.getElementById('lerr'),e=document.getElementById('le').value.trim();
-  if(!/^\S+@\S+\.\S+$/.test(e)){l.textContent='Type your email ID above first.';return}
-  try{await auth.sendPasswordResetEmail(e);l.style.color='var(--ok)';l.textContent='Password reset link sent to your email.'}catch(x){l.textContent='Could not send. Check the email ID.'}
+  const l=document.getElementById('lerr'),e=document.getElementById('le').value.trim().toLowerCase();
+  const say=(s,ok)=>{l.style.color=ok?'var(--ok)':'var(--bad)';l.textContent=s};
+  if(!/^\S+@\S+\.\S+$/.test(e))return say('Type your email ID in the box above first, then tap Forgot password.');
+  if(/@wave-academy\.app$/.test(e))return say('This is an old account without a real email, so a reset link cannot be sent. Please ask your teacher, or create a new account with your email.');
+  try{await auth.sendPasswordResetEmail(e);say('If this email is registered, a password reset link has been sent to it. Open the email (check Spam too), set a new password, then sign in here.',true)}
+  catch(x){const k=x.code||'';say(k.includes('too-many')?'Too many requests. Please wait a few minutes and try again.':k.includes('network')?'No internet connection.':'Could not send the reset email. Check the email ID and try again.')}
+}
+function pwScreen(){
+  h(`<h1>Change password</h1><div class="card"><input type="password" id="cp0" placeholder="Current password"><input type="password" id="cp1" placeholder="New password (letters + numbers, min 6)"><input type="password" id="cp2" placeholder="Confirm new password"><p id="cpm" style="margin:6px 0"></p><div class="row"><button onclick="doChangePw()">Update password</button><button class="sec" onclick="home()">Back</button></div></div>`);
+}
+async function doChangePw(){
+  const g=id=>document.getElementById(id).value,m=(s,ok)=>{const e=document.getElementById('cpm');e.style.color=ok?'var(--ok)':'var(--bad)';e.textContent=s};
+  const o=g('cp0'),n=g('cp1'),c=g('cp2'),u=auth.currentUser;
+  if(!o)return m('Enter your current password.');
+  if(!pwOk(n))return m('New '+PWRULE.charAt(0).toLowerCase()+PWRULE.slice(1));
+  if(n!==c)return m('The new passwords do not match.');
+  if(n===o)return m('The new password must be different from the current one.');
+  try{
+    await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,o));
+    await u.updatePassword(n);
+    document.getElementById('cp0').value=document.getElementById('cp1').value=document.getElementById('cp2').value='';
+    m('Password changed. Use the new password next time you sign in.',true);
+  }catch(e){const k=e.code||'';m(k.includes('wrong-password')||k.includes('invalid-credential')?'Your current password is wrong.':k.includes('too-many')?'Too many attempts. Please try again later.':k.includes('requires-recent')?'Please sign out, sign in again and retry.':'Could not change the password. Please try again.')}
+}
+async function sendReset(email){
+  const e=document.getElementById('rsm');
+  if(!email||/@wave-academy\.app$/.test(email)){e.style.color='var(--bad)';e.textContent='This student has no real email address, so a reset link cannot be sent.';return}
+  try{await auth.sendPasswordResetEmail(email);e.style.color='var(--ok)';e.textContent='Reset link sent to '+email+'.'}catch(x){e.style.color='var(--bad)';e.textContent='Could not send the email. Please try again later.'}
 }
 function verifyScreen(u,msg){
   h(logoTop()+`<div class="card"><h2>Verify your email</h2><p>We sent a verification link to <b>${esc(u.email)}</b>. Open the email, tap the link, then come back here and tap the button below.</p><p class="mut">Check your Spam folder too.</p><p id="lerr" style="color:var(--ok)">${esc(msg||'')}</p><div class="row"><button onclick="checkVerified()">I’ve verified</button><button class="sec" onclick="resendVerify()">Resend email</button><button class="sec" onclick="logout()">Sign out</button></div></div>`);
@@ -146,7 +175,7 @@ function timeOver(){h('<div class="card" style="text-align:center"><div class="b
 function home(){
   draft=null;
   if(!isTeacher)sec=mySec;
-  const hd=`<div class="row" style="gap:14px;margin:8px 0"><img src="${LOGO}" alt="" width="64" height="64" style="border-radius:50%;flex:none"><div><h1 style="margin:0">The Wave Academy</h1><div style="line-height:1.45">${isTeacher?'<b>Admin</b>':`<div><span class="mut">Name:</span> <b>${esc(myName||'Student')}</b></div><div><span class="mut">Class:</span> <b>${esc(myClass)}</b></div>`}</div></div><button class="sec" style="margin-left:auto" onclick="logout()">Sign out</button></div>`;
+  const hd=`<div class="row" style="gap:14px;margin:8px 0"><img src="${LOGO}" alt="" width="64" height="64" style="border-radius:50%;flex:none"><div><h1 style="margin:0">The Wave Academy</h1><div style="line-height:1.45">${isTeacher?'<b>Admin</b>':`<div><span class="mut">Name:</span> <b>${esc(myName||'Student')}</b></div><div><span class="mut">Class:</span> <b>${esc(myClass)}</b></div>`}</div></div><div style="margin-left:auto;display:flex;flex-direction:column;gap:6px"><button class="sec" onclick="logout()">Sign out</button><button class="sec" onclick="pwScreen()">🔒 Password</button></div></div>`;
   if(sec===null){
     let o=hd+banner()+'<p class="mut">Choose a section.</p>';
     SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;o+=`<div class="card opt" style="display:block" onclick="sec='${s}';stab='tests';home()"><div class="row sp"><h2 style="margin:0">${s}</h2><span class="mut">${n} test${n===1?'':'s'} ›</span></div></div>`});
@@ -194,7 +223,7 @@ async function stuDetail(id){
     const s=ud.data(),res={};r.docs.forEach(d=>{res[d.data().testId]=d.data()});
     const ts=tests.filter(t=>t.section===s.sec&&t.published===true),tk=ts.filter(t=>res[t.id]);
     const avg=tk.length?Math.round(tk.reduce((q,t)=>q+res[t.id].score/res[t.id].total*100,0)/tk.length):0;
-    let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div>`;
+    let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div><div class="card"><label class="mut">Password</label><button class="sec" onclick="sendReset('${esc(s.email)}')">Send password reset email</button><p id="rsm" class="mut" style="margin:6px 0 0"></p></div>`;
     ts.forEach(t=>{const x=res[t.id];o+=`<div class="card"><div class="row sp"><b>${esc(t.title)}</b><span>${x?x.score+'/'+x.total:'<span style="color:var(--bad)">Not attempted</span>'}</span></div>${x?`<div class="mut">${new Date(x.at).toLocaleString()}</div>${bar(Math.round(x.score/x.total*100))}${timeChips(t,x)}`:''}</div>`});
     h(o);
   }catch(e){h('<div class="card">Could not load: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
@@ -426,12 +455,14 @@ async function delTest(id){
 }
 
 let cur=null,att={},pend=null;
+const hasNeg=t=>t.section==='Physics XI'||t.section==='Physics XII';
+const brk=(t,rec)=>{if(!rec.mk)return '';const an=rec.answers||[];let c=0,w=0,s=0;t.questions.forEach((q,i)=>{const a=an[i];if(a==null||a<0)s++;else if(a===q.answer)c++;else w++});return `<div class="card mut" style="text-align:center">${c} correct × (+4) = <b>+${4*c}</b><br>${w} wrong × (−1) = <b>−${w}</b><br>${s} unattempted × 0 = <b>0</b></div>`};
 const clk=ms=>{const s=Math.max(0,Math.ceil(ms/1000)),hr=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (hr?hr+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')};
 const durMin=t=>t.mins||Math.max(1,Math.round((t.secs||30)*t.questions.length/60));
 function start(id){
   const t=tests.find(x=>x.id===id);if(!t)return;if(mine[id])return home();
   const a=att[id];if(over(t)&&!a)return timeOver();
-  h(`<h1>${esc(t.title)}</h1><div class="card"><p>${t.questions.length} questions · <b>${durMin(t)} minutes</b> in total.</p><ul style="padding-left:18px;line-height:1.7"><li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
+  h(`<h1>${esc(t.title)}</h1><div class="card"><p>${t.questions.length} questions · <b>${durMin(t)} minutes</b> in total.</p><ul style="padding-left:18px;line-height:1.7">${hasNeg(t)?'<li><b>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted questions.</b> Total marks: '+4*t.questions.length+'.</li>':''}<li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
 }
 function begin(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
@@ -495,8 +526,9 @@ async function submit(auto){
   clearInterval(timer);timer=null;
   document.removeEventListener('visibilitychange',onVis);window.removeEventListener('pagehide',onHide);
   const {t,ans}=cur,times=cur.times.map(v=>Math.round(v/1000));cur=null;
-  const total=t.questions.length,score=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0);
-  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:Date.now()},auto};
+  const mk=hasNeg(t),nq=t.questions.length,cc=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0),ww=ans.reduce((n,a,i)=>n+(a>=0&&a!==t.questions[i].answer?1:0),0);
+  const total=mk?4*nq:nq,score=mk?4*cc-ww:cc;
+  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:Date.now(),...(mk?{mk:1}:{})},auto};
   await finishSave();
 }
 async function finishSave(){
@@ -509,7 +541,7 @@ async function finishSave(){
 function showResult(id,auto){
   const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return home();
   const ans=rec.answers||[],times=rec.times||[];
-  let o=`<h1>${auto?'Time’s up!':'Submitted!'}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div></div><h2>Review</h2>`;
+  let o=`<h1>${auto?'Time’s up!':'Submitted!'}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div></div>${brk(t,rec)}<h2>Review</h2>`;
   t.questions.forEach((q,i)=>{
     o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${tmBadge(times,i)}${imgQ(q)}`;
     q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
@@ -531,13 +563,32 @@ async function results(id){
     rcache={t,rows};drawResults();
   }catch(e){h('<div class="card">Could not load students: '+esc(e.message||e)+'. Make sure you published the latest Firebase rules.</div><button onclick="home()">Back</button>')}
 }
+
+function paperPdf(id,key){
+  const t=tests.find(x=>x.id===id);if(!t)return;
+  const n=t.questions.length,neg=hasNeg(t),L='ABCD';
+  let o=`<h1>THE WAVE ACADEMY</h1><div class="pc">${esc(t.section||'')}</div><div class="pc"><b>${esc(t.title)}</b></div><div class="pc">Time: ${durMin(t)} minutes &nbsp;·&nbsp; Questions: ${n} &nbsp;·&nbsp; Maximum marks: ${neg?4*n:n}</div>${neg?'<div class="pc"><i>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted.</i></div>':''}<hr>`;
+  t.questions.forEach((q,i)=>{
+    o+=`<div class="pq"><div><b>${i+1}.</b> ${fmt(q.q)}</div>${imgQ(q)}`;
+    q.options.forEach((op,j)=>o+=`<div class="pop">(${L[j]}) ${optHtml(q,j)}</div>`);
+    o+='</div>';
+  });
+  if(key){
+    o+=`<div class="pk"><h1>Answer Key</h1><div class="pc">${esc(t.title)}</div><hr><table><tr>${t.questions.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr><tr>${t.questions.map(q=>`<td style="text-align:center">${L[q.answer]||'–'}</td>`).join('')}</tr></table></div>`;
+  }
+  document.getElementById('pp').innerHTML=o;
+  const old=document.title;document.title=(t.title||'Question paper')+(key?' - with answer key':' - Question paper');
+  const done=()=>{document.title=old;document.getElementById('pp').innerHTML='';window.removeEventListener('afterprint',done)};
+  window.addEventListener('afterprint',done);
+  setTimeout(()=>window.print(),300);
+}
 function drawResults(){
   const t=rcache.t,rows=rcache.rows,done=rows.filter(x=>x.res),no=rows.filter(x=>!x.res);
   done.sort((a,b)=>b.res.score-a.res.score||(a.name||'').localeCompare(b.name||''));
   no.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const avg=done.length?(done.reduce((s,x)=>s+x.res.score,0)/done.length).toFixed(1):'–';
   let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(t.title)}</h1><p class="mut">${esc(t.section||'')} · ${t.questions.length} questions · ${durMin(t)} min</p>
-  <div class="row" style="gap:10px;flex-wrap:nowrap">${box(done.length,'Attempted')}${box(no.length,'Not attempted')}${box(avg,'Average score')}</div>
+  <div class="row" style="margin:8px 0"><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button></div><div class="row" style="gap:10px;flex-wrap:nowrap">${box(done.length,'Attempted')}${box(no.length,'Not attempted')}${box(avg,'Average score')}</div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1f9d55">●</span> Green = attempted (tap for test analysis) &nbsp; <span style="color:#d64545">●</span> Red = not attempted</p><div>`;
   done.forEach(x=>o+=`<button class="pill ok" onclick="analysis('${x.uid}')">${esc(x.name)} · ${x.res.score}/${x.res.total}</button>`);
   no.forEach(x=>o+=`<button class="pill no" onclick="notTaken('${x.uid}')">${esc(x.name)}</button>`);
@@ -558,7 +609,7 @@ function analysis(u){
   const slow=tm.map((v,i)=>({v:v||0,i})).sort((a,b)=>b.v-a.v).slice(0,3).filter(z=>z.v>0);
   let o=`<button class="sec" onclick="drawResults()">← All students</button><h1 style="margin-top:12px">${esc(x.name)}</h1><p class="mut">${esc(x.mobile||'')} · ${esc(t.title)}</p>
   <div class="row" style="gap:10px;flex-wrap:nowrap">${box(res.score+'/'+res.total,'Score')}${box(Math.round(res.score/res.total*100)+'%','Percentage')}${box('#'+rank+' / '+done.length,'Rank')}</div>
-  <div class="row" style="gap:10px;flex-wrap:nowrap;margin-top:10px">${box(cor,'Correct')}${box(wr,'Wrong')}${box(sk,'Skipped')}</div>
+  <div class="row" style="gap:10px;flex-wrap:nowrap;margin-top:10px">${box(cor,'Correct')}${box(wr,'Wrong')}${box(sk,'Skipped')}</div>${brk(rcache.t,res)}
   <div class="card"><div>⏱ Total time: <b>${tm.length?ft(tot):'not recorded'}</b>${tm.length?' · average '+ft(tot/n)+' per question':''}</div>${slow.length?`<div class="mut" style="margin-top:4px">Took the longest on: ${slow.map(z=>'Q'+(z.i+1)+' ('+ft(z.v)+')').join(', ')}</div>`:''}<div class="mut" style="margin-top:4px">Class average: ${avg}/${n} · Submitted ${new Date(res.at).toLocaleString()}</div></div><h2>Question-wise analysis</h2>`;
   t.questions.forEach((q,i)=>{
     const a=an[i],s=a==null||a<0,ok=a===q.answer;
@@ -591,7 +642,7 @@ function timeChips(t,x){
 function showReview(id,from){
   const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return;
   const ans=rec.answers||[],times=rec.times||[];
-  let o=`<h1>${esc(t.title)}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>`;
+  let o=`<h1>${esc(t.title)}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
   t.questions.forEach((q,i)=>{o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${tmBadge(times,i)}${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
   h(o+`<button onclick="${from==='p'?'progress()':'home()'}">Back</button>`);
 }
