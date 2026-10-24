@@ -172,7 +172,7 @@ function copyLink(){
 }
 const over=t=>t.deadline&&Date.now()>t.deadline;
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
-function home(){
+function home(){normMine();
   draft=null;
   if(!isTeacher)sec=mySec;
   const hd=`<div class="row" style="gap:14px;margin:8px 0"><img src="${LOGO}" alt="" width="64" height="64" style="border-radius:50%;flex:none"><div><h1 style="margin:0">The Wave Academy</h1><div style="line-height:1.45">${isTeacher?'<b>Admin</b>':`<div><span class="mut">Name:</span> <b>${esc(myName||'Student')}</b></div><div><span class="mut">Class:</span> <b>${esc(myClass)}</b></div>`}</div></div><div style="margin-left:auto;display:flex;flex-direction:column;gap:6px"><button class="sec" onclick="logout()">Sign out</button><button class="sec" onclick="pwScreen()">🔒 Password</button></div></div>`;
@@ -207,7 +207,7 @@ async function sectionStudents(o){
   try{
     const [u,r]=await Promise.all([db.collection('users').where('sec','==',sec).get(),db.collection('results').get()]);
     const ids=tests.filter(t=>t.section===sec&&t.published===true).map(t=>t.id),by={};
-    r.docs.forEach(d=>{const x=d.data();if(ids.includes(x.testId))(by[x.uid]=by[x.uid]||[]).push(x)});
+    r.docs.forEach(d=>{const x=d.data();if(ids.includes(x.testId))(by[x.uid]=by[x.uid]||[]).push(nr(x))});
     const rows=u.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     let s=`<p class="mut">${rows.length} student${rows.length===1?'':'s'} in ${esc(sec)} · tap a name for the progress report</p><div class="card scroll"><table><tr><th>Name</th><th>Email</th><th>Taken</th><th>Avg</th></tr>`;
     rows.forEach(x=>{const a=by[x.id]||[],avg=a.length?Math.round(a.reduce((q,z)=>q+z.score/z.total*100,0)/a.length)+'%':'–';
@@ -455,6 +455,8 @@ async function delTest(id){
 }
 
 let cur=null,att={},pend=null;
+const nr=x=>{const t=tests.find(z=>z.id===x.testId);if(!t||x.mk||!hasNeg(t)||!x.answers)return x;const n=t.questions.length;let c=0,w=0;x.answers.forEach((a,i)=>{if(a>=0&&t.questions[i]){if(a===t.questions[i].answer)c++;else w++}});return {...x,score:4*c-w,total:4*n,mk:1}};
+const normMine=()=>{Object.keys(mine).forEach(k=>mine[k]=nr(mine[k]))};
 const hasNeg=t=>t.section==='Physics XI'||t.section==='Physics XII';
 const brk=(t,rec)=>{if(!rec.mk)return '';const an=rec.answers||[];let c=0,w=0,s=0;t.questions.forEach((q,i)=>{const a=an[i];if(a==null||a<0)s++;else if(a===q.answer)c++;else w++});return `<div class="card mut" style="text-align:center">${c} correct × (+4) = <b>+${4*c}</b><br>${w} wrong × (−1) = <b>−${w}</b><br>${s} unattempted × 0 = <b>0</b></div>`};
 const clk=ms=>{const s=Math.max(0,Math.ceil(ms/1000)),hr=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (hr?hr+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')};
@@ -538,7 +540,7 @@ async function finishSave(){
   catch(e){return h('<div class="card"><h2>Could not save your answers</h2><p>Please check your internet connection and try again. Do not close this page.</p><button onclick="finishSave()">Try again</button></div>')}
   pend=null;showResult(rec.testId,auto);
 }
-function showResult(id,auto){
+function showResult(id,auto){normMine();
   const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return home();
   const ans=rec.answers||[],times=rec.times||[];
   let o=`<h1>${auto?'Time’s up!':'Submitted!'}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div></div>${brk(t,rec)}<h2>Review</h2>`;
@@ -557,7 +559,7 @@ async function results(id){
   h('<p class="mut">Loading students…</p>');
   try{
     const [u,r]=await Promise.all([db.collection('users').where('sec','==',t.section).get(),db.collection('results').where('testId','==',id).get()]);
-    const sub={};r.docs.forEach(d=>{const x=d.data();sub[x.uid]=x});
+    const sub={};r.docs.forEach(d=>{const x=d.data();sub[x.uid]=nr(x)});
     const rows=u.docs.filter(d=>d.id!==uid).map(d=>({uid:d.id,name:d.data().name,mobile:d.data().email,res:sub[d.id]||null}));
     Object.keys(sub).forEach(k=>{if(k!==uid&&!rows.some(x=>x.uid===k))rows.push({uid:k,name:sub[k].name,mobile:sub[k].email||'',res:sub[k]})});
     rcache={t,rows};drawResults();
@@ -622,7 +624,7 @@ function analysis(u){
 async function togglePub(id,v){
   try{await db.collection('tests').doc(id).update({published:v})}catch(e){alert('Could not change: '+(e.message||e))}
 }
-function progress(){
+function progress(){normMine();
   const items=Object.keys(mine).map(k=>({id:k,...mine[k]})).sort((a,b)=>b.at-a.at);
   if(!items.length)return h('<h1>My progress</h1><div class="card mut">You haven’t taken any tests yet.</div><button onclick="home()">Back</button>');
   const pct=x=>Math.round(x.score/x.total*100),avg=Math.round(items.reduce((s,x)=>s+pct(x),0)/items.length),best=Math.max(...items.map(pct));
@@ -639,7 +641,7 @@ function timeChips(t,x){
   const tot=x.times.reduce((a,b)=>a+(b||0),0),an=x.answers||[];
   return `<div class="mut" style="margin-bottom:6px">⏱ Total time: <b>${ft(tot)}</b></div><div class="row" style="gap:6px">${t.questions.map((q,i)=>{const sk=an[i]<0,ok=an[i]===q.answer;return `<span style="padding:3px 8px;border-radius:8px;background:var(--ac2);font-size:13px">Q${i+1} <span style="color:var(--${sk?'mut':ok?'ok':'bad'})">${sk?'–':ok?'✓':'✗'}</span> ${ft(x.times[i]||0)}</span>`}).join('')}</div>`;
 }
-function showReview(id,from){
+function showReview(id,from){normMine();
   const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return;
   const ans=rec.answers||[],times=rec.times||[];
   let o=`<h1>${esc(t.title)}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
