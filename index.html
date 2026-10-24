@@ -364,10 +364,9 @@ async function userOff(id,enable){
 async function userDel(id){
   if(!confirm('Delete this student permanently? Their profile, results and video access will be removed. This cannot be undone.\n\nTo only stop them from taking tests, use Disable instead.'))return;
   try{
-    const [r,sr,ar]=await Promise.all([db.collection('results').where('uid','==',id).get(),db.collection('users/'+id+'/results').get(),db.collection('users/'+id+'/attempts').get()]);
+    const [r,sr]=await Promise.all([db.collection('results').where('uid','==',id).get(),db.collection('users/'+id+'/results').get()]);
     for(const d of r.docs)await db.collection('results').doc(d.id).delete();
     for(const d of sr.docs)await db.collection('users/'+id+'/results').doc(d.id).delete();
-    for(const d of ar.docs)await db.collection('users/'+id+'/attempts').doc(d.id).delete();
     await db.collection('access').doc(id).delete();
     await db.collection('users').doc(id).delete();
     allStudents();
