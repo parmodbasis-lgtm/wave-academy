@@ -194,7 +194,7 @@ function home(){
     const info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline?' · until '+new Date(t.deadline).toLocaleString():''}`;
     if(isTeacher){
       o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><h2>${esc(t.title)}</h2><div class="mut">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● Published</span>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}</div></div><span class="mut">Students ›</span></div>
-      <div class="row" style="margin-top:10px" onclick="event.stopPropagation()"><button onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="sec" onclick="share('${t.id}')">Share</button><button class="sec" onclick="editDl('${t.id}')">Deadline</button><button class="del" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
+      <div class="row" style="margin-top:10px" onclick="event.stopPropagation()"><button onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="sec" onclick="share('${t.id}')">Share</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="sec" onclick="editDl('${t.id}')">Deadline</button><button class="del" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
       return;
     }
     o+=`<div class="card"><div class="row sp"><div><h2>${esc(t.title)}</h2><div class="mut">${info}</div>${a&&!done?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}</div>
