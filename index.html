@@ -761,7 +761,7 @@ async function saveEdit(d){
   if(sz>900000)return alert('This test is too large to save as one test because of the pictures. Please remove or shrink some pictures.');
   try{
     const r=await db.collection('results').where('testId','==',draft.id).get();
-    if(r.docs.length&&!confirm(r.docs.length+' student(s) have already taken this test. Their saved scores will not change, but their answer review will use the updated questions and answers. Save changes?'))return;
+    if(r.docs.length&&!confirm(r.docs.length+' student(s) have already taken this test. Their marks will be recalculated automatically with the updated correct answers. Save changes?'))return;
     await db.collection('tests').doc(draft.id).update({title:d.title,section:d.section,mins:d.mins,deadline:d.deadline,questions:d.questions});
     draft=null;home();alert('Test updated.');
   }catch(e){alert('Could not save: '+(e.message||e))}
@@ -846,7 +846,7 @@ async function delTest(id){
 }
 
 let cur=null,att={},pend=null;
-const nr=x=>{const t=tests.find(z=>z.id===x.testId);if(!t||x.mk||!hasNeg(t)||!x.answers)return x;const n=t.questions.length;let c=0,w=0;x.answers.forEach((a,i)=>{if(a>=0&&t.questions[i]){if(a===t.questions[i].answer)c++;else w++}});return {...x,score:4*c-w,total:4*n,mk:1}};
+const nr=x=>{const t=tests.find(z=>z.id===x.testId);if(!t||!x.answers||!t.questions)return x;const n=t.questions.length,ng=hasNeg(t);let c=0,w=0;t.questions.forEach((q,i)=>{const a=x.answers[i];if(a>=0){if(a===q.answer)c++;else w++}});return ng?{...x,score:4*c-w,total:4*n,mk:1}:{...x,score:c,total:n}};
 const normMine=()=>{Object.keys(mineAll).forEach(k=>{mineAll[k]=mineAll[k].map(nr);mine[k]=mineAll[k][mineAll[k].length-1]})};
 const canRetake=id=>!!mineAll[id]&&(allowed[id]||1)>mineAll[id].length;
 const hasNeg=t=>t.section==='Physics XI'||t.section==='Physics XII';
