@@ -33,7 +33,7 @@ textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;ma
 .tav{display:block;width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid #e0aa00;box-shadow:0 0 0 3px rgba(255,226,122,.45),0 0 18px rgba(245,197,24,.75)}
 .tt{font-size:21px;font-weight:700;line-height:1.15;background:linear-gradient(90deg,#8a5a00,#d99a00 50%,#7a4f00);-webkit-background-clip:text;background-clip:text;color:transparent}
 .tbd{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:999px;background:linear-gradient(135deg,#fff3b0,#f5c518 45%,#c99700);color:#3a2800;font-size:13px;font-weight:700;border:1px solid #b88a00;box-shadow:0 2px 5px rgba(120,90,0,.3)}
-.arw{color:#d99a00;font-style:normal;font-weight:900;margin:0 3px}.cln{margin-top:6px;text-align:center;font-weight:700;font-size:15px;color:#7a4f00}.tgl{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(138,90,0,.4);text-align:center;font-size:13px;font-style:italic;color:#3b3f8f;font-weight:600}
+.arw{color:#d99a00;font-style:normal;font-weight:900;margin:0 3px}.cln{margin-top:6px;text-align:center;font-weight:700;font-size:15px;color:#7a4f00}.tgl{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(138,90,0,.4);text-align:center;font-size:14px;font-style:normal;color:#3b3f8f;font-weight:600;white-space:nowrap}
 .idl .ic img,.idl .ic .ph{border:2px solid #e0aa00;box-shadow:0 3px 8px rgba(0,0,0,.35);transition:transform .25s,box-shadow .25s}
 .idl .ic:hover img,.idl .ic:active img,.idl .ic:hover .ph,.idl .ic:active .ph{transform:scale(1.1);box-shadow:0 0 14px rgba(245,197,24,.9)}
 .isub{font-size:10px;font-weight:700;color:#8a5a00;margin-top:1px}
@@ -67,7 +67,7 @@ button:disabled{opacity:.5}
 const $app=document.getElementById('app');
 let db=null,user=null,uid=null,myName='',isTeacher=false,tests=[],mine={},mineAll={},allowed={},timer=null,draft=null,opened=false,loaded=false,sec=null;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}})};
+const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}});document.querySelectorAll('.tgl').forEach(e=>{let f=14;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth+1&&f>7){f-=.5;e.style.fontSize=f+'px'}})};
 const h=(html)=>{$app.innerHTML=html;window.scrollTo(0,0);fitWT()};
 window.addEventListener('resize',fitWT);try{document.fonts&&document.fonts.ready.then(fitWT)}catch(e){}
 
@@ -133,6 +133,7 @@ async function doAuth(){
     if(!up)return void await auth.signInWithEmailAndPassword(e,p);
     const n=g('ln').value.trim(),c=g('lc').value;
     if(!n)return err('Please enter your full name.');
+    if(n.length<2||/@/.test(n)||!/\p{L}/u.test(n))return err('Please enter your real name (not an email or number).');
     if(!c)return err('Please select your class.');
     if(!/^[A-Za-z0-9]{6,}$/.test(p)||!/[A-Za-z]/.test(p)||!/\d/.test(p))return err('Password: at least 6 characters, letters and numbers only, with at least one letter and one number.');
     const cr=await auth.createUserWithEmailAndPassword(e,p);
@@ -223,7 +224,8 @@ function stuCard(sc){
 function home(){normMine();
   draft=null;
   if(!isTeacher&&!mySecs().includes(sec))sec=mySec;
-  const hd=`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1><div style="line-height:1.45">${isTeacher?'':`<div><span class="mut">Name:</span> <b>${esc(myName||'Student')}</b></div><div><span class="mut">Class:</span> <b>${esc(myClass)}</b></div>`}</div></div></div>`;
+  const hd=`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1><div style="line-height:1.45">${isTeacher?'':`<div><span class="mut">Name:</span> <b>${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div><span class="mut">Class:</span> <b>${esc(myClass)}</b></div>`}</div></div></div>`;
+  if(!isTeacher&&!stuOpen&&mySecs().length===1){sec=mySecs()[0];stuOpen=true}
   if(!isTeacher&&!stuOpen){
     return h(hd+banner()+stuCard()+'<p class="mut">Choose a section.</p>'+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
   }
@@ -235,7 +237,7 @@ function home(){normMine();
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:14px" onclick="stab='${k}';home()">${l}</button>`;
   let o=hd+banner();
   if(isTeacher)o+=`<button class="sec" onclick="sec=null;home()">← All sections</button><h2 style="margin:14px 0 8px;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><div style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?3:2},1fr);gap:8px;margin-bottom:10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations'):''}${tb('stu','Students')}</div>`;
-  else o+=stuCard(sec)+`<button onclick="stuOpen=false;home()">← Back</button><div class="row sp" style="margin:10px 0 6px"><h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${isVidSec(sec)?'<button onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" onclick="progress()">📊 My progress</button></span></div>`;
+  else{const one=mySecs().length<2;o+=stuCard(sec)+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`<div class="row sp" style="margin:10px 0 6px">${one?'<span></span>':`<h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${isVidSec(sec)?'<button onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" onclick="progress()">📊 My progress</button></span></div>`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   o+=subTabs();
@@ -400,10 +402,15 @@ async function stuDetail(id){
     try{(await db.collection('retakes').where('uid','==',id).get()).docs.forEach(d=>{rta[d.data().testId]=d.data().allowed||1})}catch(e){}
     const secsOf=[s.sec].concat(Array.isArray(s.extra)?s.extra:[]),ts=tests.filter(t=>secsOf.includes(t.section)&&t.published===true),tk=ts.filter(t=>res[t.id]);
     const avg=tk.length?Math.round(tk.reduce((q,t)=>q+res[t.id].score/res[t.id].total*100,0)/tk.length):0;
-    let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div>${statCard(id,s)}${extraCard(id,s)}${isVidSec(s.sec)?accCard(id,ad&&ad.exists?ad.data():{}):''}<div class="card"><label class="mut">Password</label><button class="sec" onclick="sendReset('${esc(s.email)}')">Send password reset email</button><p id="rsm" class="mut" style="margin:6px 0 0"></p></div>`;
+    let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div><div class="card"><label class="mut">Student name</label><input type="text" id="sn" value="${esc(s.name||'')}" placeholder="Full name"><button class="sec" style="margin-top:8px" onclick="saveName('${id}')">Save name</button></div>${statCard(id,s)}${extraCard(id,s)}${isVidSec(s.sec)?accCard(id,ad&&ad.exists?ad.data():{}):''}<div class="card"><label class="mut">Password</label><button class="sec" onclick="sendReset('${esc(s.email)}')">Send password reset email</button><p id="rsm" class="mut" style="margin:6px 0 0"></p></div>`;
     ts.forEach(t=>{const x=res[t.id],L=alls[t.id]||[],pend=x&&(rta[t.id]||1)>L.length;o+=`<div class="card"><div class="row sp"><b>${esc(t.title)}${L.length>1?' · Attempt '+L.length:''}</b><span>${x?x.score+'/'+x.total:'<span style="color:var(--bad)">Not attempted</span>'}</span></div>${x?`<div class="mut">${new Date(x.at).toLocaleString()}</div>${L.length>1?`<div class="mut">${L.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${bar(Math.round(x.score/x.total*100))}${timeChips(t,x)}<div style="margin-top:8px">${pend?`<span style="color:var(--ac)">🔁 Reassigned – waiting</span> <button class="sec" onclick="reassignSt('${t.id}','${id}',${L.length},false)">Cancel</button>`:(L.length>=10?'':`<button class="sec" onclick="reassignSt('${t.id}','${id}',${L.length},true)">🔁 Reassign test</button>`)}</div>`:''}</div>`});
     h(o);
   }catch(e){h('<div class="card">Could not load: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
+}
+async function saveName(id){
+  const n=document.getElementById('sn').value.trim();
+  if(n.length<2||/@/.test(n)||!/\p{L}/u.test(n))return alert('Please enter a real name (not an email or number).');
+  try{await db.collection('users').doc(id).update({name:n});alert('Name updated.');stuDetail(id)}catch(e){alert('Could not save: '+(e.message||e))}
 }
 async function moveStu(id,c){try{await db.collection('users').doc(id).update({cls:c,sec:CLS[c]});home()}catch(e){alert('Could not move: '+(e.message||e))}}
 async function allStudents(){
