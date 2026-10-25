@@ -419,7 +419,36 @@ function mk(i){
 function mkBar(){
   return `<div class="mkbar"><button class="sec" onclick="mkOpen=!mkOpen;sync();drawBuilder(true)">∑ Math keyboard ${mkOpen?'▲':'▼'}</button>${mkOpen?`<div class="mkgrid">${MK.map((m,i)=>`<button class="mkb" onpointerdown="event.preventDefault()" onclick="mk(${i})">${esc(m[0])}</button>`).join('')}</div><div class="mut" style="padding:4px 0">Equations sit between $ signs, e.g. $F = ma$. The keys add them for you.</div>`:''}</div>`;
 }
-let impMsg='';
+let impMsg='',aiMsg='';
+const aiKey=()=>{try{return localStorage.getItem('wa_ak')||''}catch(e){return ''}};
+const aiCard=()=>`<div class="card"><h2 style="margin-bottom:4px">✨ Make questions with Claude AI</h2><p class="mut" style="margin:0 0 8px">Write the topic and Claude creates MCQs for the section selected below. Then you can edit everything.</p><label class="mut">Topic</label><textarea id="aitp" rows="2" placeholder="e.g. Refraction of light – medium level, numericals also"></textarea><label class="mut">Number of questions</label><input type="number" id="aict" min="1" max="30" value="10">${aiKey()?'':'<label class="mut">Claude API key (saved only on this phone)</label><input type="password" id="aik" placeholder="sk-ant-...">'}<div class="row" style="margin-top:8px"><button id="aib" onclick="aiGen()">✨ Generate questions</button>${aiKey()?'<button class="sec" onclick="aiForget()">Change API key</button>':''}</div><p id="aist" class="mut">${aiMsg}</p></div>`;
+function aiForget(){try{localStorage.removeItem('wa_ak')}catch(e){}sync();drawBuilder()}
+async function aiGen(){
+  const g=id=>document.getElementById(id),st=g('aist');
+  const topic=g('aitp').value.trim(),n=Math.min(30,Math.max(1,+g('aict').value||10));
+  if(!topic){st.textContent='Please write a topic first.';return}
+  let key=aiKey();if(!key)key=g('aik')?g('aik').value.trim():'';
+  if(!key){st.textContent='Please paste your Claude API key.';return}
+  sync();const sect=draft.section||'',hard=/XI|XII/.test(sect)?'JEE Main / NEET level':'CBSE school level';
+  g('aib').disabled=true;st.textContent='Claude is writing '+n+' questions… please wait (up to 30 seconds).';
+  const prompt='You are a physics teacher. Create '+n+' multiple-choice questions for '+sect+' ('+hard+') on this topic: '+topic+'.\nRules: exactly 4 options and exactly one correct option; vary the position of the correct answer; no "all of the above"; questions must be accurate and unambiguous. Write every formula, symbol and unit with math inside LaTeX between single dollar signs, for example $v = u + at$ or $10\\ \\text{m/s}$; plain words stay outside the dollars.\nReturn ONLY a JSON array, no other text: [{"q":"question","o":["opt1","opt2","opt3","opt4"],"a":0}] where a is the index (0-3) of the correct option. Escape every backslash in JSON as a double backslash.';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:8000,messages:[{role:'user',content:prompt}]})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){if(r.status===401)try{localStorage.removeItem('wa_ak')}catch(e){}throw new Error(r.status===401?'API key is not valid. Please check the key.':(j.error&&j.error.message)||('Error '+r.status))}
+    const txt=(j.content||[]).map(c=>c.text||'').join(''),a0=txt.indexOf('['),a1=txt.lastIndexOf(']');
+    if(a0<0||a1<0)throw new Error('Claude did not return questions. Please try again.');
+    const fx=v=>String(v==null?'':v).replace(/\f/g,'\\f').replace(/\x08/g,'\\b').replace(/\t/g,'\\t').replace(/\r/g,'\\r');
+    const arr=JSON.parse(txt.slice(a0,a1+1)).filter(x=>x&&x.q&&Array.isArray(x.o)&&x.o.length>=4);
+    if(!arr.length)throw new Error('No usable questions came back. Please try again.');
+    try{localStorage.setItem('wa_ak',key)}catch(e){}
+    const nq=arr.map(x=>({q:fx(x.q),qi:'',o:x.o.slice(0,4).map(fx),oi:['','','',''],a:(x.a>=0&&x.a<=3)?+x.a:-1}));
+    draft.qs=draft.qs.filter(x=>x.q.trim()||x.qi||x.o.some(v=>v.trim())).concat(nq);
+    if(!draft.title.trim())draft.title=topic.slice(0,60);
+    aiMsg='✅ <b>'+nq.length+' questions added</b> at the end. Please check them below, edit if needed, then save.';
+    drawBuilder();
+  }catch(e){const s2=document.getElementById('aist');if(s2)s2.textContent='⚠ '+(e.message||e);const b=document.getElementById('aib');if(b)b.disabled=false}
+}
 const impCard=()=>`<div class="card"><h2 style="margin-bottom:4px">📄 Import from Word file</h2><p class="mut" style="margin:0 0 8px">Upload a .docx file and all questions, options and pictures are added at once.</p><input type="file" id="impf" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onchange="importDocx(this)" style="max-width:100%"><p id="impst" class="mut">${impMsg}</p><details><summary class="mut">How should the Word file look?</summary><pre style="white-space:pre-wrap;font:13px/1.5 system-ui;margin:8px 0">1. Question text (you can insert a picture here)
 (a) Option one (text or a picture)
 (b) Option two
@@ -654,7 +683,7 @@ async function importDocx(inp){
   }catch(e){st.textContent='Could not read this file: '+(e.message||e)}
 }
 function editTest(id){
-  const t=tests.find(x=>x.id===id);if(!t)return;impMsg='';
+  const t=tests.find(x=>x.id===id);if(!t)return;impMsg='';aiMsg='';
   const dl=t.deadline?new Date(t.deadline-new Date(t.deadline).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   draft={id,pub:t.published===true,title:t.title||'',section:t.section||SECS[0],mins:durMin(t),deadline:dl,qs:t.questions.map(q=>({q:q.q||'',qi:q.qi||'',o:(q.options||['','','','']).slice(0,4),oi:Array.from({length:4},(_,j)=>(q.oi&&q.oi[j])||''),a:q.answer>=0?q.answer:0}))};
   drawBuilder();
@@ -669,7 +698,7 @@ async function saveEdit(d){
     draft=null;home();alert('Test updated.');
   }catch(e){alert('Could not save: '+(e.message||e))}
 }
-function builder(){impMsg='';draft={title:'',section:sec||SECS[0],mins:30,deadline:'',qs:[blankQ()]};drawBuilder()}
+function builder(){impMsg='';aiMsg='';draft={title:'',section:sec||SECS[0],mins:30,deadline:'',qs:[blankQ()]};drawBuilder()}
 const blankQ=()=>({q:'',qi:'',o:['','','',''],oi:['','','',''],a:0});
 function sync(){
   const g=id=>document.getElementById(id);if(!g('bt'))return;
@@ -679,7 +708,7 @@ function sync(){
 function drawBuilder(keep){
   const y=window.scrollY;
   const th=(src,k,i,j)=>src?`<div class="row" style="margin:6px 0"><img class="${k==='q'?'qimg':'oimg'}" src="${src}" alt=""><button class="del" onclick="rmImg('${k}',${i},${j})">Remove image</button></div>`:'';
-  let o=`<h1>${draft.id?'Edit test':'New test'}</h1>${mkBar()}${impCard()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
+  let o=`<h1>${draft.id?'Edit test':'New test'}</h1>${mkBar()}${aiCard()}${impCard()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
   <label class="mut">Section</label><select id="bs">${SECS.map(s=>`<option ${draft.section===s?'selected':''}>${s}</option>`).join('')}</select>
   <label class="mut">Total time for the whole test (minutes)</label><input type="number" id="bm" min="1" value="${draft.mins}">
   <label class="mut">Available until (optional)</label><input type="datetime-local" id="bd" value="${esc(draft.deadline)}"></div>`;
