@@ -421,7 +421,84 @@ function mkBar(){
 }
 let impMsg='',aiMsg='';
 const aiKey=()=>{try{return localStorage.getItem('wa_ak')||''}catch(e){return ''}};
-const aiCard=()=>`<div class="card"><h2 style="margin-bottom:4px">✨ Make questions with Claude AI</h2><p class="mut" style="margin:0 0 8px">Write the topic and Claude creates MCQs for the section selected below. Then you can edit everything.</p><label class="mut">Topic</label><textarea id="aitp" rows="2" placeholder="e.g. Refraction of light – medium level, numericals also"></textarea><label class="mut">Number of questions</label><input type="number" id="aict" min="1" max="30" value="10">${aiKey()?'':'<label class="mut">Claude API key (saved only on this phone)</label><input type="password" id="aik" placeholder="sk-ant-...">'}<div class="row" style="margin-top:8px"><button id="aib" onclick="aiGen()">✨ Generate questions</button>${aiKey()?'<button class="sec" onclick="aiForget()">Change API key</button>':''}</div><p id="aist" class="mut">${aiMsg}</p></div>`;
+const aiCard=()=>`<div class="card"><h2 style="margin-bottom:4px">✨ Make questions with AI</h2><p class="mut" style="margin:0 0 8px">Write the topic and AI creates the MCQs. Then edit everything below.</p><label class="mut">Topic</label><textarea id="aitp" rows="2" placeholder="e.g. Refraction of light – medium level, numericals also"></textarea><label class="mut">Number of questions</label><input type="number" id="aict" min="1" max="30" value="10">
+<div style="margin-top:12px"><b>🆓 Free: Google Gemini (no card, no payment)</b></div>${gKey()?'':'<ol class="mut" style="margin:4px 0;padding-left:18px"><li>Open <b>aistudio.google.com/apikey</b> and log in with Google.</li><li>Tap “Create API key”, copy it.</li><li>Paste it below (only once).</li></ol><input type="password" id="agk" placeholder="AQ.… or AIza…">'}<div class="row" style="margin-top:8px"><button id="aigb" onclick="aiGenG()">✨ Generate with Gemini (free)</button>${gKey()?'<button class="sec" onclick="gForget()">Change key</button>':''}</div>
+<details style="margin-top:12px"><summary class="mut">Other ways (Claude API key, or copy-paste)</summary><div style="margin-top:8px"><b>Claude API key (paid)</b></div>${aiKey()?'':'<input type="password" id="aik" placeholder="sk-ant-...">'}<div class="row" style="margin-top:8px"><button id="aib" onclick="aiGen()">✨ Generate with Claude</button>${aiKey()?'<button class="sec" onclick="aiForget()">Change API key</button>':''}</div><div style="margin-top:12px"><b>Copy-paste (free)</b></div><button class="sec" onclick="aiCopy()" style="margin-top:6px">📋 Copy prompt</button><textarea id="aipr" rows="3" readonly style="display:none;margin-top:8px"></textarea><textarea id="aipa" rows="3" style="margin-top:8px" placeholder="Paste the AI’s answer here"></textarea><button onclick="aiPaste()" style="margin-top:6px">➕ Add questions</button></details><p id="aist" class="mut">${aiMsg}</p></div>`;
+const aiPrompt=(n,topic,sect)=>{const hard=/XI|XII/.test(sect)?'JEE Main / NEET level':'CBSE school level';return 'You are a physics teacher. Create '+n+' multiple-choice questions for '+(sect||'school')+' ('+hard+') on this topic: '+topic+'.\nRules: exactly 4 options and exactly one correct option; vary the position of the correct answer; no "all of the above"; questions must be accurate and unambiguous. Write every formula, symbol and unit with math inside LaTeX between single dollar signs, for example $v = u + at$ or $10\\ \\text{m/s}$; plain words stay outside the dollars.\nReturn ONLY a JSON array, no other text: [{"q":"question","o":["opt1","opt2","opt3","opt4"],"a":0}] where a is the index (0-3) of the correct option. Escape every backslash in JSON as a double backslash.'};
+function aiAdd(txt,topic){
+  const a0=txt.indexOf('['),a1=txt.lastIndexOf(']');
+  if(a0<0||a1<0)throw new Error('No questions found in the text. Please copy the AI’s full answer.');
+  const fx=v=>String(v==null?'':v).replace(/\f/g,'\\f').replace(/\x08/g,'\\b').replace(/\t/g,'\\t').replace(/\r/g,'\\r');
+  let arr;try{arr=JSON.parse(txt.slice(a0,a1+1))}catch(e){throw new Error('The text could not be read. Ask the AI to “return only the JSON array” and paste again.')}
+  arr=arr.filter(x=>x&&x.q&&Array.isArray(x.o)&&x.o.length>=4);
+  if(!arr.length)throw new Error('No usable questions found. Please try again.');
+  const nq=arr.map(x=>({q:fx(x.q),qi:'',o:x.o.slice(0,4).map(fx),oi:['','','',''],a:(x.a>=0&&x.a<=3)?+x.a:-1}));
+  draft.qs=draft.qs.filter(x=>x.q.trim()||x.qi||x.o.some(v=>v.trim())).concat(nq);
+  if(!draft.title.trim()&&topic)draft.title=topic.slice(0,60);
+  aiMsg='✅ <b>'+nq.length+' questions added</b> at the end. Please check them below, edit if needed, then save.';
+  drawBuilder();
+}
+async function aiCopy(){
+  const g=id=>document.getElementById(id),st=g('aist'),topic=g('aitp').value.trim(),n=Math.min(30,Math.max(1,+g('aict').value||10));
+  if(!topic){st.textContent='Please write a topic first.';return}
+  sync();const pr=aiPrompt(n,topic,draft.section||'');
+  try{await navigator.clipboard.writeText(pr);st.textContent='✅ Prompt copied. Now open Claude / ChatGPT / Gemini, paste it, send, then copy the answer and paste it in the box below.'}
+  catch(e){const t=g('aipr');t.style.display='block';t.value=pr;t.focus();t.select();st.textContent='Copy the prompt from the box below, paste it in your AI chat, then paste the answer in the second box.'}
+}
+function aiPaste(){
+  const g=id=>document.getElementById(id),st=g('aist'),txt=g('aipa').value.trim();
+  if(!txt){st.textContent='Please paste the AI’s answer first.';return}
+  sync();try{aiAdd(txt,g('aitp').value.trim())}catch(e){st.textContent='⚠ '+(e.message||e)}
+}
+const gKey=()=>{try{return localStorage.getItem('wa_gk')||''}catch(e){return ''}};
+function gForget(){try{localStorage.removeItem('wa_gk');localStorage.removeItem('wa_gm')}catch(e){}sync();drawBuilder()}
+async function gf(url,key,opt){
+  opt=opt||{};opt.headers=Object.assign({},opt.headers,{'x-goog-api-key':key});
+  try{return await fetch(url,opt)}catch(e){
+    const o2=Object.assign({},opt,{headers:Object.assign({},opt.headers)});delete o2.headers['x-goog-api-key'];
+    return await fetch(url+(url.includes('?')?'&':'?')+'key='+encodeURIComponent(key),o2);
+  }
+}
+async function gModel(key,force){
+  let m='';try{m=force?'':localStorage.getItem('wa_gm')||''}catch(e){}
+  if(m)return m;
+  const r=await gf('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',key);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw Object.assign(new Error((j.error&&j.error.message)||('Error '+r.status)),{st:r.status});
+  const L=(j.models||[]).filter(x=>(x.supportedGenerationMethods||[]).includes('generateContent')).map(x=>x.name.replace('models/',''));
+  const ver=n=>{const k=n.match(/^gemini-(\d+(?:\.\d+)?)-flash$/);return k?parseFloat(k[1]):-1};
+  let best=L.filter(n=>ver(n)>=0).sort((a,b)=>ver(b)-ver(a))[0]||L.find(n=>/flash/.test(n)&&!/lite|image|tts|live|audio|thinking/.test(n))||L.find(n=>/^gemini/.test(n));
+  if(!best)throw new Error('No Gemini model available for this key.');
+  try{localStorage.setItem('wa_gm',best)}catch(e){}
+  return best;
+}
+async function aiGenG(){
+  const g=id=>document.getElementById(id),st=g('aist');
+  const topic=g('aitp').value.trim(),n=Math.min(30,Math.max(1,+g('aict').value||10));
+  if(!topic){st.textContent='Please write a topic first.';return}
+  let key=gKey();if(!key)key=g('agk')?g('agk').value.trim():'';
+  if(!key){st.textContent='Please paste your free Gemini key.';return}
+  sync();const prompt=aiPrompt(n,topic,draft.section||'');
+  g('aigb').disabled=true;st.textContent='Gemini is writing '+n+' questions… please wait (up to 40 seconds).';
+  try{
+    let txt='';
+    for(let tries=0;tries<2;tries++){
+      const m=await gModel(key,tries>0);
+      const r=await gf('https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent',key,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.6,maxOutputTokens:12000}})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){
+        if(r.status===404&&tries===0)continue;
+        if(r.status===400||r.status===403){try{localStorage.removeItem('wa_gk')}catch(e){}throw new Error('Gemini key is not valid. Please check the key.')}
+        if(r.status===429)throw new Error('Free limit reached for now (too many requests). Wait a minute and try again.');
+        throw new Error((j.error&&j.error.message)||('Error '+r.status));
+      }
+      txt=((j.candidates||[])[0]&&(j.candidates[0].content.parts||[]).map(x=>x.text||'').join(''))||'';break;
+    }
+    aiAdd(txt,topic);try{localStorage.setItem('wa_gk',key)}catch(e){}
+  }catch(e){
+    if(e.st===400||e.st===403){try{localStorage.removeItem('wa_gk')}catch(x){}}
+    const s2=document.getElementById('aist');if(s2)s2.textContent='⚠ '+(e.st===400||e.st===403?'Gemini key is not valid. Please check the key.':(e.message||e));const b=document.getElementById('aigb');if(b)b.disabled=false}
+}
 function aiForget(){try{localStorage.removeItem('wa_ak')}catch(e){}sync();drawBuilder()}
 async function aiGen(){
   const g=id=>document.getElementById(id),st=g('aist');
@@ -431,22 +508,13 @@ async function aiGen(){
   if(!key){st.textContent='Please paste your Claude API key.';return}
   sync();const sect=draft.section||'',hard=/XI|XII/.test(sect)?'JEE Main / NEET level':'CBSE school level';
   g('aib').disabled=true;st.textContent='Claude is writing '+n+' questions… please wait (up to 30 seconds).';
-  const prompt='You are a physics teacher. Create '+n+' multiple-choice questions for '+sect+' ('+hard+') on this topic: '+topic+'.\nRules: exactly 4 options and exactly one correct option; vary the position of the correct answer; no "all of the above"; questions must be accurate and unambiguous. Write every formula, symbol and unit with math inside LaTeX between single dollar signs, for example $v = u + at$ or $10\\ \\text{m/s}$; plain words stay outside the dollars.\nReturn ONLY a JSON array, no other text: [{"q":"question","o":["opt1","opt2","opt3","opt4"],"a":0}] where a is the index (0-3) of the correct option. Escape every backslash in JSON as a double backslash.';
+  const prompt=aiPrompt(n,topic,sect);
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:8000,messages:[{role:'user',content:prompt}]})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok){if(r.status===401)try{localStorage.removeItem('wa_ak')}catch(e){}throw new Error(r.status===401?'API key is not valid. Please check the key.':(j.error&&j.error.message)||('Error '+r.status))}
-    const txt=(j.content||[]).map(c=>c.text||'').join(''),a0=txt.indexOf('['),a1=txt.lastIndexOf(']');
-    if(a0<0||a1<0)throw new Error('Claude did not return questions. Please try again.');
-    const fx=v=>String(v==null?'':v).replace(/\f/g,'\\f').replace(/\x08/g,'\\b').replace(/\t/g,'\\t').replace(/\r/g,'\\r');
-    const arr=JSON.parse(txt.slice(a0,a1+1)).filter(x=>x&&x.q&&Array.isArray(x.o)&&x.o.length>=4);
-    if(!arr.length)throw new Error('No usable questions came back. Please try again.');
-    try{localStorage.setItem('wa_ak',key)}catch(e){}
-    const nq=arr.map(x=>({q:fx(x.q),qi:'',o:x.o.slice(0,4).map(fx),oi:['','','',''],a:(x.a>=0&&x.a<=3)?+x.a:-1}));
-    draft.qs=draft.qs.filter(x=>x.q.trim()||x.qi||x.o.some(v=>v.trim())).concat(nq);
-    if(!draft.title.trim())draft.title=topic.slice(0,60);
-    aiMsg='✅ <b>'+nq.length+' questions added</b> at the end. Please check them below, edit if needed, then save.';
-    drawBuilder();
+    const txt=(j.content||[]).map(c=>c.text||'').join('');
+    aiAdd(txt,topic);try{localStorage.setItem('wa_ak',key)}catch(e){}
   }catch(e){const s2=document.getElementById('aist');if(s2)s2.textContent='⚠ '+(e.message||e);const b=document.getElementById('aib');if(b)b.disabled=false}
 }
 const impCard=()=>`<div class="card"><h2 style="margin-bottom:4px">📄 Import from Word file</h2><p class="mut" style="margin:0 0 8px">Upload a .docx file and all questions, options and pictures are added at once.</p><input type="file" id="impf" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onchange="importDocx(this)" style="max-width:100%"><p id="impst" class="mut">${impMsg}</p><details><summary class="mut">How should the Word file look?</summary><pre style="white-space:pre-wrap;font:13px/1.5 system-ui;margin:8px 0">1. Question text (you can insert a picture here)
