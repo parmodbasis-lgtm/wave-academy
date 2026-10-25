@@ -869,7 +869,6 @@ async function finishSave(){
 /* ===== Crackers + confetti when a test ends ===== */
 function crackers(){
   try{
-    if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     const old=document.getElementById('fxc');if(old)old.remove();
     const c=document.createElement('canvas');c.id='fxc';c.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:99';
     document.body.appendChild(c);
@@ -902,7 +901,7 @@ function showResult(id,auto,fx){normMine();
   const ans=rec.answers||[],times=rec.times||[];
   let o=`<h1>${auto?'Time’s up!':'Submitted!'}${rec.attempt>1?' (Attempt '+rec.attempt+')':''}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div></div>${brk(t,rec)}<h2>Review</h2>`;
   t.questions.forEach((q,i)=>{
-    o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${tmBadge(times,i)}${imgQ(q)}`;
+    o+=`<div class="card">${qTag(q,ans[i],times,i)}<b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;
     q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
     o+=`</div>`;
   });
@@ -1011,6 +1010,7 @@ function progress(){normMine();
   h(o+`<button onclick="home()">Back</button>`);
 }
 const ft=s=>{s=Math.round(s||0);return s>=60?Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s':s+'s'};
+const qTag=(q,a,times,i)=>{const sk=a==null||a<0,ok=a===q.answer,c=sk?'#6b7280':ok?'#15803d':'#c62828';return `<div class="row sp" style="margin-bottom:6px;flex-wrap:nowrap"><span class="mut">${times&&times[i]!=null?'⏱ '+ft(times[i]):''}</span><span style="background:${c};color:#fff;font-weight:700;font-size:13px;padding:3px 10px;border-radius:12px">${sk?'– Not attempted':ok?'✓ Correct':'✗ Wrong'}</span></div>`};
 const tmBadge=(a,i)=>a&&a[i]!=null?`<span class="mut" style="float:right">⏱ ${ft(a[i])}</span>`:'';
 function timeChips(t,x){
   if(!x.times)return '<div class="mut">Time not recorded</div>';
@@ -1021,7 +1021,7 @@ function showReview(id,from,k){normMine();
   const t=tests.find(x=>x.id===id),rec=(k!=null&&k!==''&&mineAll[id])?mineAll[id][k]:mine[id];if(!t||!rec)return;
   const ans=rec.answers||[],times=rec.times||[];
   let o=`<h1>${esc(t.title)}${(mineAll[id]||[]).length>1?' – Attempt '+(rec.attempt||1):''}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
-  t.questions.forEach((q,i)=>{o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${tmBadge(times,i)}${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
+  t.questions.forEach((q,i)=>{o+=`<div class="card">${qTag(q,ans[i],times,i)}<b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
   h(o+`<button onclick="${from==='p'?'progress()':'home()'}">Back</button>`);
 }
 init();
