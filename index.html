@@ -48,7 +48,7 @@ button:disabled{opacity:.5}
 <main id="app"><p class="mut">Loading…</p></main><div id="pp"></div>
 <script>
 const $app=document.getElementById('app');
-let db=null,user=null,uid=null,myName='',isTeacher=false,tests=[],mine={},timer=null,draft=null,opened=false,loaded=false,sec=null;
+let db=null,user=null,uid=null,myName='',isTeacher=false,tests=[],mine={},mineAll={},allowed={},timer=null,draft=null,opened=false,loaded=false,sec=null;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}})};
 const h=(html)=>{$app.innerHTML=html;window.scrollTo(0,0);fitWT()};
@@ -71,7 +71,7 @@ function init(){
   firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.firestore();
   auth.onAuthStateChanged(async u=>{
     if(unsub){unsub();unsub=null}
-    tests=[];mine={};att={};opened=false;loaded=false;sec=null;draft=null;isTeacher=false;stuOpen=false;myExtra=[];myClass='';mySec='';myName='';
+    tests=[];mine={};mineAll={};allowed={};att={};opened=false;loaded=false;sec=null;draft=null;isTeacher=false;stuOpen=false;myExtra=[];myClass='';mySec='';myName='';
     if(!u){uid=null;return loginScreen()}
     uid=u.uid;
     try{
@@ -82,7 +82,8 @@ function init(){
       if(!isTeacher&&p.exists&&p.data().active===false)return h(logoTop()+'<div class="card"><h2>Access closed</h2><p>Your access to The Wave Academy has been closed. If you think this is a mistake, please contact your teacher.</p><button class="sec" onclick="logout()">Logout</button></div>');
       if(p.exists){const d=p.data();myName=d.name||'';myEmail=d.email||'';myClass=d.cls||'';mySec=d.sec||'';myExtra=Array.isArray(d.extra)?d.extra:[]}
       if(!isTeacher&&!mySec){return p.exists?h(logoTop()+'<div class="card"><h2>Class not set</h2><p>Please ask your teacher to set your class.</p><button class="sec" onclick="logout()">Logout</button></div>'):classScreen()}
-      r.docs.forEach(d=>mine[d.id]=d.data());ar.docs.forEach(d=>att[d.id]=d.data());
+      r.docs.forEach(d=>{const x=d.data();(mineAll[x.testId]=mineAll[x.testId]||[]).push(x)});Object.keys(mineAll).forEach(k=>{mineAll[k].sort((a,b)=>(a.attempt||1)-(b.attempt||1));mine[k]=mineAll[k][mineAll[k].length-1]});ar.docs.forEach(d=>att[d.id]=d.data());
+      if(!isTeacher){try{(await db.collection('retakes').where('uid','==',uid).get()).docs.forEach(d=>{const x=d.data();allowed[x.testId]=x.allowed||1})}catch(e){}}
       if(!isTeacher)sec=mySec;
       const col=db.collection('tests'),upd=()=>{tests=[].concat(...Object.values(parts)).sort((a,b)=>b.created-a.created);if(!timer&&!draft){if(!openHash())home()}},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
       if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail);unsub=us}
@@ -165,8 +166,8 @@ function openHash(){
   const id=location.hash.slice(1),t=tests.find(x=>x.id===id);
   if(!t)return false;
   opened=true;sec=t.section||'Other';
-  if(mine[id])return false;
-  if(over(t)&&!att[id]){timeOver();return true}
+  if(mine[id]&&!canRetake(id))return false;
+  if(over(t)&&!att[id]&&!canRetake(id)){timeOver();return true}
   start(id);return true;
 }
 function share(id){
@@ -205,15 +206,15 @@ function home(){normMine();
   const ts=tests.filter(t=>(t.section||'Other')===sec);
   if(!ts.length)o+=`<div class="card mut">No tests in this section yet.</div>`;
   ts.forEach(t=>{
-    const done=mine[t.id],pub=t.published===true,a=att[t.id];
+    const done=mine[t.id],pub=t.published===true,a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
     const info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline?' · until '+new Date(t.deadline).toLocaleString():''}`;
     if(isTeacher){
       o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● Published</span>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}</div></div><span class="mut">Students ›</span></div>
       <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
       return;
     }
-    o+=`<div class="card"><div class="row sp"><div><h2>${esc(t.title)}</h2><div class="mut">${info}</div>${a&&!done?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}</div>
-    <div class="row">${done?`<b>${done.score}/${done.total}</b><button onclick="showReview('${t.id}')">View answers</button>`:(a?`<button onclick="start('${t.id}')">Resume</button>`:(over(t)?`<b style="color:var(--bad)">Time Over!!!</b>`:`<button onclick="start('${t.id}')">Start</button>`))}</div></div></div>`;
+    o+=`<div class="card"><div class="row sp"><div><h2>${esc(t.title)}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
+    <div class="row">${done?`<b>${done.score}/${done.total}</b>${all.length>1?all.map((r,i)=>`<button onclick="showReview('${t.id}','',${i})">Attempt ${i+1}</button>`).join(''):`<button onclick="showReview('${t.id}')">View answers</button>`}${rt?`<button onclick="start('${t.id}')">${a?'Resume':'🔁 Retake'}</button>`:''}`:(a?`<button onclick="start('${t.id}')">Resume</button>`:(over(t)?`<b style="color:var(--bad)">Time Over!!!</b>`:`<button onclick="start('${t.id}')">Start</button>`))}</div></div></div>`;
   });
   h(o+lob());
 }
@@ -344,7 +345,7 @@ async function sectionStudents(o){
     const vs=isVidSec(sec),[u0,u2,r,ac]=await Promise.all([db.collection('users').where('sec','==',sec).get(),db.collection('users').where('extra','array-contains',sec).get(),db.collection('results').get(),vs?db.collection('access').get():Promise.resolve({docs:[]})]),u=uniqDocs(u0,u2);
     const acc={};ac.docs.forEach(d=>acc[d.id]=d.data());
     const ids=tests.filter(t=>t.section===sec&&t.published===true).map(t=>t.id),by={};
-    r.docs.forEach(d=>{const x=d.data();if(ids.includes(x.testId))(by[x.uid]=by[x.uid]||[]).push(nr(x))});
+    const lat={};r.docs.forEach(d=>{const x=d.data();if(!ids.includes(x.testId))return;const k=x.uid+'|'+x.testId;if(!lat[k]||(x.attempt||1)>(lat[k].attempt||1))lat[k]=x});Object.values(lat).forEach(x=>(by[x.uid]=by[x.uid]||[]).push(nr(x)));
     const rows=u.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     let s=`<p class="mut">${rows.length} student${rows.length===1?'':'s'} in ${esc(sec)} · tap a name for the progress report</p><div class="card scroll"><table><tr><th>Name</th><th>Email</th><th>Taken</th><th>Avg</th>${vs?'<th>Paid</th><th>Premium</th>':''}</tr>`;
     rows.forEach(x=>{const a=by[x.id]||[],avg=a.length?Math.round(a.reduce((q,z)=>q+z.score/z.total*100,0)/a.length)+'%':'–';
@@ -357,11 +358,12 @@ async function stuDetail(id){
   h('<p class="mut">Loading…</p>');
   try{
     const [ud,r,ad]=await Promise.all([db.collection('users').doc(id).get(),db.collection('results').where('uid','==',id).get(),db.collection('access').doc(id).get().catch(()=>null)]);
-    const s=ud.data(),res={};r.docs.forEach(d=>{res[d.data().testId]=d.data()});
+    const s=ud.data(),res={},alls={},rta={};r.docs.forEach(d=>{const x=d.data();(alls[x.testId]=alls[x.testId]||[]).push(nr(x))});Object.keys(alls).forEach(k=>{alls[k].sort((a,b)=>(a.attempt||1)-(b.attempt||1));res[k]=alls[k][alls[k].length-1]});
+    try{(await db.collection('retakes').where('uid','==',id).get()).docs.forEach(d=>{rta[d.data().testId]=d.data().allowed||1})}catch(e){}
     const secsOf=[s.sec].concat(Array.isArray(s.extra)?s.extra:[]),ts=tests.filter(t=>secsOf.includes(t.section)&&t.published===true),tk=ts.filter(t=>res[t.id]);
     const avg=tk.length?Math.round(tk.reduce((q,t)=>q+res[t.id].score/res[t.id].total*100,0)/tk.length):0;
     let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(s.name)}</h1><p class="mut">${esc(s.email)} · ${esc(s.sec)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(tk.length+'/'+ts.length,'Tests taken')}${box(avg+'%','Average')}</div><div class="card"><label class="mut">Move to class</label><select onchange="moveStu('${id}',this.value)">${Object.keys(CLS).map(c=>`<option ${CLS[c]===s.sec?'selected':''}>${c}</option>`).join('')}</select></div>${statCard(id,s)}${extraCard(id,s)}${isVidSec(s.sec)?accCard(id,ad&&ad.exists?ad.data():{}):''}<div class="card"><label class="mut">Password</label><button class="sec" onclick="sendReset('${esc(s.email)}')">Send password reset email</button><p id="rsm" class="mut" style="margin:6px 0 0"></p></div>`;
-    ts.forEach(t=>{const x=res[t.id];o+=`<div class="card"><div class="row sp"><b>${esc(t.title)}</b><span>${x?x.score+'/'+x.total:'<span style="color:var(--bad)">Not attempted</span>'}</span></div>${x?`<div class="mut">${new Date(x.at).toLocaleString()}</div>${bar(Math.round(x.score/x.total*100))}${timeChips(t,x)}`:''}</div>`});
+    ts.forEach(t=>{const x=res[t.id],L=alls[t.id]||[],pend=x&&(rta[t.id]||1)>L.length;o+=`<div class="card"><div class="row sp"><b>${esc(t.title)}${L.length>1?' · Attempt '+L.length:''}</b><span>${x?x.score+'/'+x.total:'<span style="color:var(--bad)">Not attempted</span>'}</span></div>${x?`<div class="mut">${new Date(x.at).toLocaleString()}</div>${L.length>1?`<div class="mut">${L.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${bar(Math.round(x.score/x.total*100))}${timeChips(t,x)}<div style="margin-top:8px">${pend?`<span style="color:var(--ac)">🔁 Reassigned – waiting</span> <button class="sec" onclick="reassignSt('${t.id}','${id}',${L.length},false)">Cancel</button>`:(L.length>=10?'':`<button class="sec" onclick="reassignSt('${t.id}','${id}',${L.length},true)">🔁 Reassign test</button>`)}</div>`:''}</div>`});
     h(o);
   }catch(e){h('<div class="card">Could not load: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
 }
@@ -386,6 +388,7 @@ async function userDel(id){
     const [r,sr]=await Promise.all([db.collection('results').where('uid','==',id).get(),db.collection('users/'+id+'/results').get()]);
     for(const d of r.docs)await db.collection('results').doc(d.id).delete();
     for(const d of sr.docs)await db.collection('users/'+id+'/results').doc(d.id).delete();
+    try{const rt=await db.collection('retakes').where('uid','==',id).get();for(const d of rt.docs)await db.collection('retakes').doc(d.id).delete()}catch(e){}
     await db.collection('access').doc(id).delete();
     await db.collection('users').doc(id).delete();
     allStudents();
@@ -740,26 +743,27 @@ function confirmDel(id){
 async function delTest(id){
   try{
     await db.collection('tests').doc(id).delete();
-    try{const r=await db.collection('results').where('testId','==',id).get();for(const d of r.docs)await db.collection('results').doc(d.id).delete()}catch(e){}
+    try{const r=await db.collection('results').where('testId','==',id).get();for(const d of r.docs)await db.collection('results').doc(d.id).delete();const rr=await db.collection('retakes').where('testId','==',id).get();for(const d of rr.docs)await db.collection('retakes').doc(d.id).delete()}catch(e){}
   }catch(e){return h('<div class="card">Could not delete: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
   home();
 }
 
 let cur=null,att={},pend=null;
 const nr=x=>{const t=tests.find(z=>z.id===x.testId);if(!t||x.mk||!hasNeg(t)||!x.answers)return x;const n=t.questions.length;let c=0,w=0;x.answers.forEach((a,i)=>{if(a>=0&&t.questions[i]){if(a===t.questions[i].answer)c++;else w++}});return {...x,score:4*c-w,total:4*n,mk:1}};
-const normMine=()=>{Object.keys(mine).forEach(k=>mine[k]=nr(mine[k]))};
+const normMine=()=>{Object.keys(mineAll).forEach(k=>{mineAll[k]=mineAll[k].map(nr);mine[k]=mineAll[k][mineAll[k].length-1]})};
+const canRetake=id=>!!mineAll[id]&&(allowed[id]||1)>mineAll[id].length;
 const hasNeg=t=>t.section==='Physics XI'||t.section==='Physics XII';
 const brk=(t,rec)=>{if(!rec.mk)return '';const an=rec.answers||[];let c=0,w=0,s=0;t.questions.forEach((q,i)=>{const a=an[i];if(a==null||a<0)s++;else if(a===q.answer)c++;else w++});return `<div class="card mut" style="text-align:center">${c} correct × (+4) = <b>+${4*c}</b><br>${w} wrong × (−1) = <b>−${w}</b><br>${s} unattempted × 0 = <b>0</b></div>`};
 const clk=ms=>{const s=Math.max(0,Math.ceil(ms/1000)),hr=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (hr?hr+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')};
 const durMin=t=>t.mins||Math.max(1,Math.round((t.secs||30)*t.questions.length/60));
 function start(id){
-  const t=tests.find(x=>x.id===id);if(!t)return;if(mine[id])return home();
-  const a=att[id];if(over(t)&&!a)return timeOver();
-  h(`<h1>${esc(t.title)}</h1><div class="card"><p>${t.questions.length} questions · <b>${durMin(t)} minutes</b> in total.</p><ul style="padding-left:18px;line-height:1.7">${hasNeg(t)?'<li><b>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted questions.</b> Total marks: '+4*t.questions.length+'.</li>':''}<li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
+  const t=tests.find(x=>x.id===id);if(!t)return;if(mine[id]&&!canRetake(id))return home();
+  const a=att[id];if(over(t)&&!a&&!canRetake(id))return timeOver();
+  h(`<h1>${esc(t.title)}${mineAll[id]?' – Attempt '+(mineAll[id].length+1):''}</h1><div class="card"><p>${t.questions.length} questions · <b>${durMin(t)} minutes</b> in total.</p><ul style="padding-left:18px;line-height:1.7">${hasNeg(t)?'<li><b>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted questions.</b> Total marks: '+4*t.questions.length+'.</li>':''}<li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
 }
 function begin(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
-  const a=att[id],n=t.questions.length;if(over(t)&&!a)return timeOver();
+  const a=att[id],n=t.questions.length;if(mine[id]&&!canRetake(id))return home();if(over(t)&&!a&&!canRetake(id))return timeOver();
   cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:durMin(t)*60000,last:Date.now(),saved:0};
   document.addEventListener('visibilitychange',onVis);window.addEventListener('pagehide',onHide);
   drawTest();clearInterval(timer);timer=setInterval(tick,1000);saveAttempt();
@@ -809,10 +813,11 @@ function drawConfirm(){
   tick();
 }
 async function saveRec(rec){
-  await db.collection('results').doc(rec.testId+'_'+uid).set(rec);
-  await db.collection('users/'+uid+'/results').doc(rec.testId).set(rec);
+  const k=rec.attempt>1?rec.attempt:0;
+  await db.collection('results').doc(rec.testId+'_'+uid+(k?'_'+k:'')).set(rec);
+  await db.collection('users/'+uid+'/results').doc(rec.testId+(k?'__'+k:'')).set(rec);
   try{await db.collection('users/'+uid+'/attempts').doc(rec.testId).delete()}catch(e){}
-  delete att[rec.testId];mine[rec.testId]=rec;
+  delete att[rec.testId];const L=mineAll[rec.testId]=mineAll[rec.testId]||[];if(!L.some(z=>(z.attempt||1)===(rec.attempt||1)))L.push(rec);mine[rec.testId]=L[L.length-1];
 }
 async function submit(auto){
   if(!cur)return;
@@ -821,7 +826,7 @@ async function submit(auto){
   const {t,ans}=cur,times=cur.times.map(v=>Math.round(v/1000));cur=null;
   const mk=hasNeg(t),nq=t.questions.length,cc=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0),ww=ans.reduce((n,a,i)=>n+(a>=0&&a!==t.questions[i].answer?1:0),0);
   const total=mk?4*nq:nq,score=mk?4*cc-ww:cc;
-  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:Date.now(),...(mk?{mk:1}:{})},auto};
+  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:Date.now(),...(mk?{mk:1}:{}),...((mineAll[t.id]||[]).length?{attempt:mineAll[t.id].length+1}:{})},auto};
   await finishSave();
 }
 async function finishSave(){
@@ -866,7 +871,7 @@ function crackers(){
 function showResult(id,auto,fx){normMine();
   const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return home();
   const ans=rec.answers||[],times=rec.times||[];
-  let o=`<h1>${auto?'Time’s up!':'Submitted!'}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div></div>${brk(t,rec)}<h2>Review</h2>`;
+  let o=`<h1>${auto?'Time’s up!':'Submitted!'}${rec.attempt>1?' (Attempt '+rec.attempt+')':''}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div></div>${brk(t,rec)}<h2>Review</h2>`;
   t.questions.forEach((q,i)=>{
     o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${tmBadge(times,i)}${imgQ(q)}`;
     q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
@@ -882,9 +887,10 @@ async function results(id){
   h('<p class="mut">Loading students…</p>');
   try{
     const [u0,u2,r]=await Promise.all([db.collection('users').where('sec','==',t.section).get(),db.collection('users').where('extra','array-contains',t.section).get(),db.collection('results').where('testId','==',id).get()]),u=uniqDocs(u0,u2);
-    const sub={};r.docs.forEach(d=>{const x=d.data();sub[x.uid]=nr(x)});
-    const rows=u.docs.filter(d=>d.id!==uid).map(d=>({uid:d.id,name:d.data().name,mobile:d.data().email,active:d.data().active,res:sub[d.id]||null})).filter(r=>r.active!==false||r.res);
-    Object.keys(sub).forEach(k=>{if(k!==uid&&!rows.some(x=>x.uid===k))rows.push({uid:k,name:sub[k].name,mobile:sub[k].email||'',res:sub[k]})});
+    const sub={},al={},rtm={};r.docs.forEach(d=>{const x=d.data();(al[x.uid]=al[x.uid]||[]).push(nr(x))});Object.keys(al).forEach(k=>{al[k].sort((a,b)=>(a.attempt||1)-(b.attempt||1));sub[k]=al[k][al[k].length-1]});
+    try{(await db.collection('retakes').where('testId','==',id).get()).docs.forEach(d=>{rtm[d.data().uid]=d.data().allowed||1})}catch(e){}
+    const rows=u.docs.filter(d=>d.id!==uid).map(d=>({uid:d.id,name:d.data().name,mobile:d.data().email,active:d.data().active,res:sub[d.id]||null,all:al[d.id]||[],allowed:rtm[d.id]||1})).filter(r=>r.active!==false||r.res);
+    Object.keys(sub).forEach(k=>{if(k!==uid&&!rows.some(x=>x.uid===k))rows.push({uid:k,name:sub[k].name,mobile:sub[k].email||'',res:sub[k],all:al[k],allowed:rtm[k]||1})});
     rcache={t,rows};drawResults();
   }catch(e){h('<div class="card">Could not load students: '+esc(e.message||e)+'. Make sure you published the latest Firebase rules.</div><button onclick="home()">Back</button>')}
 }
@@ -916,7 +922,7 @@ function drawResults(){
   <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1d4ed8">●</span> Blue = attempted (tap for test analysis) &nbsp; <span style="color:#8b0000">●</span> Dark red = not attempted</p><div>`;
   const topS=done.length?done[0].res.score:null;
-  done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
+  done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>x.all.length?' 🔁':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
   no.forEach(x=>o+=`<button class="pill stk no" onclick="notTaken('${x.uid}')"><span>${esc(x.name)}</span></button>`);
   if(!rows.length)o+='<div class="card mut">No students have joined this class yet.</div>';
   h(o+`</div><div id="nt"></div>`);
@@ -926,14 +932,17 @@ function notTaken(u){
   e.innerHTML=`<div class="card" style="border-color:#d64545"><b>${esc(x.name)}</b><div class="mut">${esc(x.mobile||'')}</div><p style="margin:6px 0 0;color:#d64545">Has not attempted this test yet.</p></div>`;
   e.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-function analysis(u){
+function analysis(u,k){
   const t=rcache.t,x=rcache.rows.find(r=>r.uid===u);if(!x||!x.res)return;
-  const res=x.res,n=t.questions.length,an=res.answers||[],tm=res.times||[];
+  if(k==null)k=x.all.length-1;
+  const res=x.all[k]||x.res,n=t.questions.length,an=res.answers||[],tm=res.times||[];
   let cor=0,wr=0,sk=0;t.questions.forEach((q,i)=>{const a=an[i];if(a==null||a<0)sk++;else if(a===q.answer)cor++;else wr++});
-  const done=rcache.rows.filter(r=>r.res),rank=1+done.filter(r=>r.res.score>res.score).length;
+  const done=rcache.rows.filter(r=>r.res),rank=1+done.filter(r=>r.uid!==u&&r.res.score>res.score).length;
   const avg=(done.reduce((s,r)=>s+r.res.score,0)/done.length).toFixed(1),tot=tm.reduce((a,b)=>a+(b||0),0);
   const slow=tm.map((v,i)=>({v:v||0,i})).sort((a,b)=>b.v-a.v).slice(0,3).filter(z=>z.v>0);
-  let o=`<button class="sec" onclick="drawResults()">← All students</button><h1 style="margin-top:12px">${esc(x.name)}</h1><p class="mut">${esc(x.mobile||'')} · ${esc(t.title)}</p>
+  let o=`<button class="sec" onclick="drawResults()">← All students</button><h1 style="margin-top:12px">${esc(x.name)}</h1><p class="mut">${esc(x.mobile||'')} · ${esc(t.title)}${x.all.length>1?' · Attempt '+(k+1):''}</p>
+  ${x.all.length>1?`<div class="row" style="margin-bottom:8px">${x.all.map((r,i)=>`<button class="${i===k?'':'sec'}" onclick="analysis('${u}',${i})">Attempt ${i+1} · ${r.score}/${r.total}</button>`).join('')}</div>`:''}
+  <div class="card">${x.allowed>x.all.length?`<span style="color:var(--ac)">🔁 Reassigned – waiting for the student to attempt again.</span> <button class="sec" onclick="unassign('${u}')">Cancel</button>`:(x.all.length>=10?'<span class="mut">Maximum 10 attempts reached.</span>':`<button onclick="reassign('${u}')">🔁 Reassign test (Attempt ${x.all.length+1})</button><div class="mut" style="margin-top:6px">Old scores stay as they are. The new score is saved as Attempt ${x.all.length+1}.</div>`)}</div>
   <div class="row" style="gap:10px;flex-wrap:nowrap">${box(res.score+'/'+res.total,'Score')}${box(Math.round(res.score/res.total*100)+'%','Percentage')}${box('#'+rank+' / '+done.length,'Rank')}</div>
   <div class="row" style="gap:10px;flex-wrap:nowrap;margin-top:10px">${box(cor,'Correct')}${box(wr,'Wrong')}${box(sk,'Skipped')}</div>${brk(rcache.t,res)}
   <div class="card"><div>⏱ Total time: <b>${tm.length?ft(tot):'not recorded'}</b>${tm.length?' · average '+ft(tot/n)+' per question':''}</div>${slow.length?`<div class="mut" style="margin-top:4px">Took the longest on: ${slow.map(z=>'Q'+(z.i+1)+' ('+ft(z.v)+')').join(', ')}</div>`:''}<div class="mut" style="margin-top:4px">Class average: ${avg}/${n} · Submitted ${new Date(res.at).toLocaleString()}</div></div><h2>Question-wise analysis</h2>`;
@@ -945,17 +954,31 @@ function analysis(u){
   });
   h(o+`<button onclick="drawResults()">Back to students</button>`);
 }
+async function setAllowed(tid,u,n){await db.collection('retakes').doc(tid+'_'+u).set({testId:tid,uid:u,allowed:n,at:Date.now()})}
+async function reassign(u){
+  const x=rcache.rows.find(r=>r.uid===u);if(!x)return;
+  if(!confirm('Reassign this test to '+x.name+'?\n\nTheir old score will stay as it is. The new attempt will be saved as Attempt '+(x.all.length+1)+'.'))return;
+  try{await setAllowed(rcache.t.id,u,x.all.length+1);x.allowed=x.all.length+1;analysis(u,x.all.length-1)}catch(e){alert('Could not reassign: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
+}
+async function unassign(u){
+  const x=rcache.rows.find(r=>r.uid===u);if(!x)return;
+  try{await setAllowed(rcache.t.id,u,x.all.length);x.allowed=x.all.length;analysis(u,x.all.length-1)}catch(e){alert('Could not cancel: '+(e.message||e))}
+}
+async function reassignSt(tid,id,n,on){
+  if(on&&!confirm('Reassign this test? Old score stays; the new score is saved as Attempt '+(n+1)+'.'))return;
+  try{await setAllowed(tid,id,on?n+1:n);stuDetail(id)}catch(e){alert('Could not change: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
+}
 async function togglePub(id,v){
   try{await db.collection('tests').doc(id).update({published:v})}catch(e){alert('Could not change: '+(e.message||e))}
 }
 function progress(){normMine();
-  const items=Object.keys(mine).map(k=>({id:k,...mine[k]})).sort((a,b)=>b.at-a.at);
+  const items=[];Object.keys(mineAll).forEach(k=>mineAll[k].forEach((r,i)=>items.push({...r,id:k,ai:i,n:mineAll[k].length})));items.sort((a,b)=>b.at-a.at);
   if(!items.length)return h('<h1>My progress</h1><div class="card mut">You haven’t taken any tests yet.</div><button onclick="home()">Back</button>');
   const pct=x=>Math.round(x.score/x.total*100),avg=Math.round(items.reduce((s,x)=>s+pct(x),0)/items.length),best=Math.max(...items.map(pct));
   const box=(v,l)=>`<div class="card" style="flex:1;text-align:center;margin:0"><div class="big" style="font-size:26px">${v}</div><div class="mut">${l}</div></div>`;
-  let o=`<h1>My progress</h1><p class="mut">${esc(myName)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(items.length,'Tests taken')}${box(avg+'%','Average')}${box(best+'%','Best')}</div>`;
+  let o=`<h1>My progress</h1><p class="mut">${esc(myName)}</p><div class="row" style="gap:10px;flex-wrap:nowrap">${box(Object.keys(mineAll).length,'Tests taken')}${box(avg+'%','Average')}${box(best+'%','Best')}</div>`;
   items.forEach(x=>{const t=tests.find(y=>y.id===x.id),p=pct(x);
-    o+=`<div class="card"><div class="row sp"><b>${esc(t?t.title:'(deleted test)')}</b><span>${x.score}/${x.total}</span></div><div class="mut">${t?esc(t.section||'Other')+' · ':''}${new Date(x.at).toLocaleDateString()}${x.times?' · ⏱ '+ft(x.times.reduce((a,b)=>a+(b||0),0)):''}</div><div style="background:var(--ac2);border-radius:6px;height:10px;margin:8px 0"><div style="width:${p}%;height:10px;border-radius:6px;background:${p>=60?'var(--ok)':p>=35?'var(--ac)':'var(--bad)'}"></div></div><div class="row sp"><span class="mut">${p}%</span>${t?`<button class="sec" onclick="showReview('${x.id}','p')">Review answers</button>`:''}</div></div>`});
+    o+=`<div class="card"><div class="row sp"><b>${esc(t?t.title:'(deleted test)')}${x.n>1?' · Attempt '+(x.ai+1):''}</b><span>${x.score}/${x.total}</span></div><div class="mut">${t?esc(t.section||'Other')+' · ':''}${new Date(x.at).toLocaleDateString()}${x.times?' · ⏱ '+ft(x.times.reduce((a,b)=>a+(b||0),0)):''}</div><div style="background:var(--ac2);border-radius:6px;height:10px;margin:8px 0"><div style="width:${p}%;height:10px;border-radius:6px;background:${p>=60?'var(--ok)':p>=35?'var(--ac)':'var(--bad)'}"></div></div><div class="row sp"><span class="mut">${p}%</span>${t?`<button class="sec" onclick="showReview('${x.id}','p',${x.ai})">Review answers</button>`:''}</div></div>`});
   h(o+`<button onclick="home()">Back</button>`);
 }
 const ft=s=>{s=Math.round(s||0);return s>=60?Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s':s+'s'};
@@ -965,10 +988,10 @@ function timeChips(t,x){
   const tot=x.times.reduce((a,b)=>a+(b||0),0),an=x.answers||[];
   return `<div class="mut" style="margin-bottom:6px">⏱ Total time: <b>${ft(tot)}</b></div><div class="row" style="gap:6px">${t.questions.map((q,i)=>{const sk=an[i]<0,ok=an[i]===q.answer;return `<span style="padding:3px 8px;border-radius:8px;background:var(--ac2);font-size:13px">Q${i+1} <span style="color:var(--${sk?'mut':ok?'ok':'bad'})">${sk?'–':ok?'✓':'✗'}</span> ${ft(x.times[i]||0)}</span>`}).join('')}</div>`;
 }
-function showReview(id,from){normMine();
-  const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return;
+function showReview(id,from,k){normMine();
+  const t=tests.find(x=>x.id===id),rec=(k!=null&&k!==''&&mineAll[id])?mineAll[id][k]:mine[id];if(!t||!rec)return;
   const ans=rec.answers||[],times=rec.times||[];
-  let o=`<h1>${esc(t.title)}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
+  let o=`<h1>${esc(t.title)}${(mineAll[id]||[]).length>1?' – Attempt '+(rec.attempt||1):''}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
   t.questions.forEach((q,i)=>{o+=`<div class="card"><b>${i+1}. ${fmt(q.q)}</b>${tmBadge(times,i)}${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
   h(o+`<button onclick="${from==='p'?'progress()':'home()'}">Back</button>`);
 }
