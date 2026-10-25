@@ -44,6 +44,17 @@ textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;ma
 .bdg.n{background:#1d4ed8}.bdg.ok{background:#15803d}.bdg.md{background:#b88a00}.bdg.lo{background:#c62828}.bdg.pz{background:#6d28d9}
 .stc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-weight:700}.stc span.pl{padding:3px 10px;border-radius:999px;background:var(--ac2);color:#312e81;font-size:13px}
 .stp{background:#dde3f7;border-radius:6px;height:9px;margin-top:8px;overflow:hidden}.stp div{height:9px;background:linear-gradient(90deg,#f5c518,#12805c)}
+
+button.gold.on:not(.del):not(.nv):not(.pill):not(.mkb){position:relative;outline:none;transform:translateY(-2px) scale(1.03);box-shadow:0 0 0 2px #fff,0 0 20px 5px rgba(255,214,90,.95)}
+button.gold.on:not(.del):not(.nv):not(.pill):not(.mkb)::after{content:'';position:absolute;left:22%;right:22%;bottom:4px;height:3px;border-radius:3px;background:#fff}
+.tabg button.gold:not(.on){opacity:.72}
+.idl{position:relative}
+.ib{position:absolute;display:none;z-index:30;background:#fffbe6;border:2px solid #e0aa00;border-radius:16px;padding:10px 12px;color:#3a2800;font-size:13px;line-height:1.4;box-shadow:0 8px 22px rgba(0,0,0,.45);text-align:left}
+.ib.on{display:block;animation:ibp .22s ease-out}.ib b{display:block;color:#7a4f00;font-size:14px;margin-bottom:3px}
+.ib .tl{position:absolute;bottom:-9px;width:14px;height:14px;background:#fffbe6;border-right:2px solid #e0aa00;border-bottom:2px solid #e0aa00;transform:rotate(45deg)}
+@keyframes ibp{from{opacity:0;transform:translateY(8px) scale(.94)}to{opacity:1;transform:none}}
+.idl .ic.sel img,.idl .ic.sel .ph{transform:scale(1.1);box-shadow:0 0 16px rgba(245,197,24,1)}
+.idl .ic{cursor:pointer}
 #pp{display:none}
 .mut{color:#c9d3f5}.card,.timer,.idl,.p3d,.opt,.mkgrid{color:var(--tx)}.qb{color:#fff}.qb button.del{color:#ff9a8f}.pv{color:#ffd84a;font-weight:700}.pv .katex{font-weight:700}.card .mut,.idl .mut,.p3d .mut,.timer .mut,.opt .mut{color:var(--mut)}
 button:not(.del):not(.nv):not(.pill):not(.mkb){background:linear-gradient(135deg,#f0c63c 0%,#c99700 45%,#a67c00 70%,#e0aa00 100%);color:#fff;border:1px solid #8f6a00;text-shadow:0 1px 2px rgba(50,32,0,.8);font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.45)}
@@ -82,7 +93,20 @@ const isSub=x=>x==='Class IX'||x==='Class X';
 const CLSLINE={'Class IX':'Foundation strong ➜ future bright ⚡','Class X':'Aaj ki practice ✍️ ➜ kal ke 95%+','Physics XI':'Revise ➜ Practice ➜ Rank 🏆','Physics XII':'Revise ➜ Practice ➜ Rank 🏆'};
 const arw=t=>esc(t).replace(/➜/g,'<span class="arw">➜</span>');
 const bnSec=()=>isTeacher?(sec||''):(stuOpen?sec:mySec)||'';
-const banner=()=>`<div class="p3d"><div class="row" style="gap:14px;margin:0;flex-wrap:nowrap;align-items:center"><div style="flex:none;width:84px;text-align:center"><img class="tav" src="${TEACHER}" alt="" width="84" height="84">${isTeacher?'<div class="mut" style="font-size:11px;font-weight:700;margin-top:4px">Admin</div>':''}</div><div style="line-height:1.3;min-width:0"><div class="tt">${isSub(bnSec())?'Maths &amp; Science':'Physics'} by ${TNAME}</div><div class="mut" style="font-size:14px;font-weight:600;margin-top:3px">CBSE / NEET / JEE Mains</div><span class="tbd">15 + Years of Experience</span></div></div><div class="tgl">Conceptual learning <span class="arw">➜</span> Daily practice <span class="arw">➜</span> Everything is possible 💡</div>${CLSLINE[bnSec()]?`<div class="cln">${arw(CLSLINE[bnSec()])}</div>`:''}</div><div class="idl"><div class="mut" style="font-weight:700;margin:0 0 6px"><span class="bulb">💡</span> The Minds That Inspire Me <span class="bulb" style="animation-delay:.9s">💡</span></div><div style="display:flex;gap:10px;flex-wrap:nowrap;padding:8px 0">${PHYS.map(x=>`<div class="ic" style="text-align:center;flex:1 1 0;min-width:0;max-width:92px">${x[2]?`<img src="${x[2]}" alt="" style="display:block;width:100%;aspect-ratio:1/1;border-radius:50%;object-fit:cover">`:`<div class="ph" style="width:100%;aspect-ratio:1/1;border-radius:50%;background:${x[1]};color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(x[0].replace(/[^A-Z]/g,'').slice(0,2)||x[0][0])}</div>`}<div class="mut" style="font-size:11px;margin-top:3px;line-height:1.25">${esc(x[0])}</div>${IDSUB[x[0]]?`<div class="isub">${IDSUB[x[0]]}</div>`:''}</div>`).join('')}</div></div>`;
+const IDDESC={'Albert Einstein':['Albert Einstein','Father of the theory of relativity and winner of the 1921 Nobel Prize in Physics. He showed that space and time are linked, and gave us E = mc².'],'Sir Isaac Newton':['Sir Isaac Newton','Discovered the three laws of motion and the law of universal gravitation. He also developed calculus and explained how white light splits into colours.'],'C.V. Raman':['C.V. Raman','India’s first Nobel laureate in Physics (1930). He discovered the Raman Effect, the scattering of light. National Science Day is celebrated on 28 February in his honour.'],'Dr. Abdul Kalam':['Dr. A.P.J. Abdul Kalam','The 11th President of India and the “Missile Man”. A scientist at ISRO and DRDO who inspired millions of students to dream big.']};
+function idolOff(){const b=document.getElementById('ib');if(b){b.classList.remove('on');b.dataset.i=''}document.querySelectorAll('.ic.sel').forEach(x=>x.classList.remove('sel'))}
+function idol(i,el){
+  const b=document.getElementById('ib');if(!b)return;
+  if(b.classList.contains('on')&&b.dataset.i===String(i))return idolOff();
+  idolOff();el.classList.add('sel');
+  const d=IDDESC[PHYS[i][0]]||[PHYS[i][0],''];
+  b.innerHTML='<b>'+esc(d[0])+'</b>'+esc(d[1])+'<span class="tl"></span>';b.dataset.i=i;b.classList.add('on');
+  const P=b.parentElement.getBoundingClientRect(),r=el.getBoundingClientRect(),w=Math.min(P.width-16,270),cx=r.left+r.width/2-P.left;
+  b.style.width=w+'px';const left=Math.max(8,Math.min(cx-w/2,P.width-w-8));b.style.left=left+'px';
+  b.querySelector('.tl').style.left=(cx-left-7)+'px';b.style.bottom=(P.bottom-r.top+10)+'px';
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.ic')&&!e.target.closest('.ib'))idolOff()});
+const banner=()=>`<div class="p3d"><div class="row" style="gap:14px;margin:0;flex-wrap:nowrap;align-items:center"><div style="flex:none;width:84px;text-align:center"><img class="tav" src="${TEACHER}" alt="" width="84" height="84">${isTeacher?'<div class="mut" style="font-size:11px;font-weight:700;margin-top:4px">Admin</div>':''}</div><div style="line-height:1.3;min-width:0"><div class="tt">${isSub(bnSec())?'Maths &amp; Science':'Physics'} by ${TNAME}</div><div class="mut" style="font-size:14px;font-weight:600;margin-top:3px">CBSE / NEET / JEE Mains</div><span class="tbd">15 + Years of Experience</span></div></div><div class="tgl">Conceptual learning <span class="arw">➜</span> Daily practice <span class="arw">➜</span> Everything is possible 💡</div>${CLSLINE[bnSec()]?`<div class="cln">${arw(CLSLINE[bnSec()])}</div>`:''}</div><div class="idl"><div class="mut" style="font-weight:700;margin:0 0 6px"><span class="bulb">💡</span> The Minds That Inspire Me <span class="bulb" style="animation-delay:.9s">💡</span></div><div style="display:flex;gap:10px;flex-wrap:nowrap;padding:8px 0">${PHYS.map((x,ix)=>`<div class="ic" onclick="idol(${ix},this)" style="text-align:center;flex:1 1 0;min-width:0;max-width:92px">${x[2]?`<img src="${x[2]}" alt="" style="display:block;width:100%;aspect-ratio:1/1;border-radius:50%;object-fit:cover">`:`<div class="ph" style="width:100%;aspect-ratio:1/1;border-radius:50%;background:${x[1]};color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(x[0].replace(/[^A-Z]/g,'').slice(0,2)||x[0][0])}</div>`}<div class="mut" style="font-size:11px;margin-top:3px;line-height:1.25">${esc(x[0])}</div>${IDSUB[x[0]]?`<div class="isub">${IDSUB[x[0]]}</div>`:''}</div>`).join('')}</div><div id="ib" class="ib"></div></div>`;
 let myEmail='',myClass='',mySec='',myExtra=[],stab='tests',stuOpen=false,subj='Science';const mySecs=()=>[mySec].concat(myExtra.filter(x=>x&&x!==mySec));
 const CLS={IX:'Class IX',X:'Class X',XI:'Physics XI',XII:'Physics XII'};
 const logoTop=()=>`<div style="text-align:center;margin-top:24px"><img src="${LOGO}" width="96" height="96" style="border-radius:50%" alt=""><h1>The Wave Academy</h1><p class="mut">Online Tests</p></div>${banner()}`;
@@ -107,9 +131,9 @@ function init(){
       r.docs.forEach(d=>{const x=d.data();(mineAll[x.testId]=mineAll[x.testId]||[]).push(x)});Object.keys(mineAll).forEach(k=>{mineAll[k].sort((a,b)=>(a.attempt||1)-(b.attempt||1));mine[k]=mineAll[k][mineAll[k].length-1]});ar.docs.forEach(d=>att[d.id]=d.data());
       if(!isTeacher){try{(await db.collection('retakes').where('uid','==',uid).get()).docs.forEach(d=>{const x=d.data();allowed[x.testId]=x.allowed||1})}catch(e){}}
       if(!isTeacher)sec=mySec;
-      const col=db.collection('tests'),upd=()=>{tests=[].concat(...Object.values(parts)).sort((a,b)=>b.created-a.created);if(!timer&&!draft){if(!openHash())home()}},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
+      const col=db.collection('tests'),upd=()=>{const mp=new Map();[].concat(...Object.values(parts)).forEach(x=>mp.set(x.id,x));tests=[...mp.values()].sort((a,b)=>b.created-a.created);if(!timer&&!draft){if(!openHash())home()}},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
       if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail);unsub=us}
-      else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));unsub=()=>us.forEach(f=>f&&f())}
+      else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));us.push(col.where('assigned','array-contains',uid).onSnapshot(s=>{parts.asg=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));unsub=()=>us.forEach(f=>f&&f())}
       loaded=true;if(!openHash())home();
     }catch(e){h('<div class="card">Something went wrong: '+esc(e.message||e)+'</div><button class="sec" onclick="logout()">Logout</button>')}
   });
@@ -206,10 +230,42 @@ function copyLink(){
   if(navigator.clipboard)navigator.clipboard.writeText(i.value).then(()=>m.textContent='Link copied ✓',()=>m.textContent='Press and hold the link above to copy it.');
   else m.textContent='Press and hold the link above to copy it.';
 }
-const over=t=>t.deadline&&Date.now()>t.deadline;
+const isAsg=t=>!isTeacher&&!!uid&&Array.isArray(t.assigned)&&t.assigned.includes(uid);
+const excl=t=>isAsg(t)&&!(t.published===true&&mySecs().includes(t.section));
+const over=t=>t.deadline&&Date.now()>t.deadline&&!isAsg(t);
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
 const lob=()=>`<div style="margin-top:26px;text-align:right"><button class="bg" onclick="logout()">Logout</button></div>`;
-const subTabs=()=>isSub(sec)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">${[['Science','🔬 Science'],['Maths','➕ Maths']].map(a=>`<button class="gold ${subj===a[0]?'on':''}" style="padding:12px 2px" onclick="subj='${a[0]}';home()">${a[1]}</button>`).join('')}</div>`:'';
+const subTabs=()=>isSub(sec)?`<div class="tabg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">${[['Science','🔬 Science'],['Maths','➕ Maths']].map(a=>`<button class="gold ${subj===a[0]?'on':''}" style="padding:12px 2px" onclick="subj='${a[0]}';home()">${a[1]}</button>`).join('')}</div>`:'';
+let asgT=null,asgRows=[],asgSel=new Set();
+async function assignOpen(id){
+  const t=tests.find(x=>x.id===id);if(!t)return;
+  h('<p class="mut">Loading students…</p>');
+  try{
+    const u=await db.collection('users').get();
+    asgRows=u.docs.filter(d=>d.id!==uid&&d.data().active!==false).map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sec||'').localeCompare(b.sec||'')||(a.name||'').localeCompare(b.name||''));
+    asgT=t;asgSel=new Set(t.assigned||[]);drawAssign();
+  }catch(e){h('<div class="card">Could not load students: '+esc(e.message||e)+'</div><button onclick="home()">Back</button>')}
+}
+function drawAssign(){
+  const t=asgT;
+  let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">Assign test</h1><p class="mut">${esc(t.title)} · ${esc(t.section||'')}</p><div class="card"><p style="margin:0">Tick the students who should get this test. They see it under <b>⭐ Assigned to you</b>, from any class, even if the test is not published for everyone, and the deadline does not apply to them.</p></div><input type="text" id="asq" placeholder="Search name or class" oninput="asgFilter()"><p class="mut" id="asn" style="margin:8px 0">${asgSel.size} selected</p>`;
+  asgRows.forEach(x=>{o+=`<label class="card asr" data-s="${esc(((x.name||'')+' '+(x.sec||'')+' '+(x.email||'')).toLowerCase())}" style="display:flex;gap:12px;align-items:center;cursor:pointer;margin:6px 0;padding:10px 14px"><input type="checkbox" style="width:22px;height:22px;flex:none" ${asgSel.has(x.id)?'checked':''} onchange="asgTog('${x.id}',this.checked)"><span><b>${esc(x.name||'Student')}</b><br><span class="mut">${esc(x.sec||'–')}</span></span></label>`});
+  if(!asgRows.length)o+='<div class="card mut">No students yet.</div>';
+  h(o+`<div class="row" style="margin-top:12px"><button onclick="asgSave()">Save assignment</button><button class="sec" onclick="home()">Cancel</button></div>`);
+}
+function asgTog(id,on){on?asgSel.add(id):asgSel.delete(id);const n=document.getElementById('asn');if(n)n.textContent=asgSel.size+' selected'}
+function asgFilter(){const q=document.getElementById('asq').value.trim().toLowerCase();document.querySelectorAll('.asr').forEach(e=>{e.style.display=!q||e.dataset.s.includes(q)?'flex':'none'})}
+async function asgSave(){
+  try{await db.collection('tests').doc(asgT.id).update({assigned:[...asgSel]});alert(asgSel.size?'Test assigned to '+asgSel.size+' student(s).':'Assignment removed.');home()}
+  catch(e){alert('Could not save: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
+}
+function stuTC(t){
+  const done=mine[t.id],a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id),info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline&&!isAsg(t)?' · until '+new Date(t.deadline).toLocaleString():''}`;
+    const pcx=done&&done.total?Math.max(0,Math.round(done.score/done.total*100)):0,bd=rt?'<span class="bdg pz">🔁 Retake</span>':done?`<span class="bdg ${pcx>=60?'ok':pcx>=35?'md':'lo'}">Score ${pcx}%</span>`:a?'<span class="bdg md">⏸ In progress</span>':over(t)?'':'<span class="bdg n">🆕 New</span>';
+    return `<div class="card"><div class="row sp"><div><h2>${esc(t.title)}${bd}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
+    <div class="row">${done?`<b>${done.score}/${done.total}</b>${all.length>1?all.map((r,i)=>`<button onclick="showReview('${t.id}','',${i})">Attempt ${i+1}</button>`).join(''):`<button onclick="showReview('${t.id}')">View answers</button>`}${rt?`<button onclick="start('${t.id}')">${a?'Resume':'🔁 Retake'}</button>`:''}`:(a?`<button onclick="start('${t.id}')">Resume</button>`:(over(t)?`<b style="color:var(--bad)">Time Over!!!</b>`:`<button onclick="start('${t.id}')">Start</button>`))}</div></div></div>`;
+}
+const asgBox=()=>{const L=isTeacher?[]:tests.filter(excl);return L.length?`<h2 style="margin:14px 0 0">⭐ Assigned to you</h2><p class="mut" style="margin:2px 0 0">Your teacher gave you these tests.</p>`+L.map(stuTC).join(''):''};
 function stuCard(sc){
   if(isTeacher)return '';
   const pubs=tests.filter(t=>t.published===true&&(!sc||(t.section||'Other')===sc)),dn=pubs.filter(t=>mineAll[t.id]).length;
@@ -227,7 +283,7 @@ function home(){normMine();
   const hd=`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1><div style="line-height:1.45">${isTeacher?'':`<div><span class="mut">Name:</span> <b>${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div><span class="mut">Class:</span> <b>${esc(myClass)}</b></div>`}</div></div></div>`;
   if(!isTeacher&&!stuOpen&&mySecs().length===1){sec=mySecs()[0];stuOpen=true}
   if(!isTeacher&&!stuOpen){
-    return h(hd+banner()+stuCard()+'<p class="mut">Choose a section.</p>'+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
+    return h(hd+banner()+stuCard()+asgBox()+'<p class="mut">Choose a section.</p>'+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
   }
   if(sec===null){
     let o=hd+banner()+'<p class="mut">Choose a section.</p>';
@@ -236,25 +292,23 @@ function home(){normMine();
   }
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:14px" onclick="stab='${k}';home()">${l}</button>`;
   let o=hd+banner();
-  if(isTeacher)o+=`<button class="sec" onclick="sec=null;home()">← All sections</button><h2 style="margin:14px 0 8px;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><div style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?3:2},1fr);gap:8px;margin-bottom:10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations'):''}${tb('stu','Students')}</div>`;
-  else{const one=mySecs().length<2;o+=stuCard(sec)+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`<div class="row sp" style="margin:10px 0 6px">${one?'<span></span>':`<h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${isVidSec(sec)?'<button onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" onclick="progress()">📊 My progress</button></span></div>`}
+  if(isTeacher)o+=`<button class="sec" onclick="sec=null;home()">← All sections</button><h2 style="margin:14px 0 8px;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><div class="tabg" style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?3:2},1fr);gap:8px;margin-bottom:10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations'):''}${tb('stu','Students')}</div>`;
+  else{const one=mySecs().length<2;o+=stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" style="width:100%" onclick="progress()">📊 My progress</button></div>`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   o+=subTabs();
   if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`;
-  const ts=tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj));
+  const ts=tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t)));
   if(!ts.length)o+=`<div class="card mut">No tests in ${isSub(sec)?esc(subj)+' ':'this section '}yet.</div>`;
   ts.forEach(t=>{
     const done=mine[t.id],pub=t.published===true,a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
     const info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline?' · until '+new Date(t.deadline).toLocaleString():''}`;
     if(isTeacher){
-      o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● Published</span>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}</div></div><span class="mut">Students ›</span></div>
-      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
+      o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● Published</span>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div></div><span class="mut">Students ›</span></div>
+      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">👤 Assign to students${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
       return;
     }
-    const pcx=done&&done.total?Math.max(0,Math.round(done.score/done.total*100)):0,bd=rt?'<span class="bdg pz">🔁 Retake</span>':done?`<span class="bdg ${pcx>=60?'ok':pcx>=35?'md':'lo'}">Score ${pcx}%</span>`:a?'<span class="bdg md">⏸ In progress</span>':over(t)?'':'<span class="bdg n">🆕 New</span>';
-    o+=`<div class="card"><div class="row sp"><div><h2>${esc(t.title)}${bd}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
-    <div class="row">${done?`<b>${done.score}/${done.total}</b>${all.length>1?all.map((r,i)=>`<button onclick="showReview('${t.id}','',${i})">Attempt ${i+1}</button>`).join(''):`<button onclick="showReview('${t.id}')">View answers</button>`}${rt?`<button onclick="start('${t.id}')">${a?'Resume':'🔁 Retake'}</button>`:''}`:(a?`<button onclick="start('${t.id}')">Resume</button>`:(over(t)?`<b style="color:var(--bad)">Time Over!!!</b>`:`<button onclick="start('${t.id}')">Start</button>`))}</div></div></div>`;
+    o+=stuTC(t);
   });
   h(o+lob());
 }
