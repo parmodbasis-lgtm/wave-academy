@@ -63,6 +63,7 @@ button:disabled{opacity:.5}
 .wt{background:linear-gradient(90deg,#ffe27a,#ffffff 55%,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.25;padding-bottom:.15em;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
 @media print{body::before{display:none!important}html,body{background:#fff!important}body>*:not(#pp){display:none!important}#pp{display:block!important;color:#000;background:#fff;font:14px/1.5 Georgia,serif;padding:0}#pp .pq{break-inside:avoid;margin:0 0 14px}#pp .pop{margin:2px 0 2px 18px}#pp img{max-width:100%;max-height:220px}#pp .oimg{max-height:90px}#pp h1{font-size:20px;text-align:center;margin:0}#pp .pc{text-align:center;margin:2px 0}#pp hr{border:0;border-top:1.5px solid #000;margin:8px 0 14px}#pp .pk{break-before:page}#pp table{border-collapse:collapse}#pp td,#pp th{border:1px solid #000;padding:3px 10px}}
 .pwb{position:relative}.pwb input{padding-right:44px}.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:20px;opacity:.5;user-select:none;padding:4px}
+body.nocp,body.nocp *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}body.nocp input,body.nocp textarea{-webkit-user-select:text;user-select:text}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -84,7 +85,17 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}});document.querySelectorAll('.tgl').forEach(e=>{let f=14;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth+1&&f>7){f-=.5;e.style.fontSize=f+'px'}})};
 let rootNext=null,pushed=false,ignorePop=false,viewKind='root';
 const toast=m=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:999;max-width:85%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5)';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none'},2200)};
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-M</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
+let wmOn=false;
+function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher&&uid;
+  document.body.classList.toggle('nocp',!isTeacher&&!!uid);
+  if(!on){if(w)w.remove();return}
+  const tx=((myName&&!/@/.test(myName)?myName:'Student')+' · '+(myClass||'')).replace(/[<>&"']/g,'');
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' width='240' height='150'><text x='120' y='75' text-anchor='middle' transform='rotate(-25 120 75)' font-family='sans-serif' font-size='17' font-weight='700' fill='rgba(0,0,0,0.10)'>"+tx+"</text></svg>";
+  if(!w){w=document.createElement('div');w.id='wm';w.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:900';document.body.appendChild(w)}
+  w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
+}
+['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-A</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -122,10 +133,11 @@ function idol(i,el){
   b.querySelector('.tl').style.left=(cx-left-7)+'px';b.style.bottom=(P.bottom-r.top+10)+'px';
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.ic')&&!e.target.closest('.ib'))idolOff()});
-const banner=()=>`<div class="p3d"><div class="row" style="gap:14px;margin:0;flex-wrap:nowrap;align-items:center"><div style="flex:none;width:84px;text-align:center"><img class="tav" src="${TEACHER}" alt="" width="84" height="84">${isTeacher?'<div class="mut" style="font-size:11px;font-weight:700;margin-top:4px">Admin</div>':''}</div><div style="line-height:1.3;min-width:0"><div class="tt">${isSub(bnSec())?'Science &amp; Maths':'Physics'} by ${TNAME}</div><div class="mut" style="font-size:14px;font-weight:600;margin-top:3px">CBSE / NEET / JEE Mains</div><span class="tbd">15 + Years of Experience</span></div></div><div class="tgl">Conceptual learning <span class="arw">➜</span> Daily practice <span class="arw">➜</span> Everything is possible 💡</div>${CLSLINE[bnSec()]?`<div class="cln">${arw(CLSLINE[bnSec()])}</div>`:''}</div><div class="idl"><div class="mut" style="font-weight:700;margin:0 0 6px"><span class="bulb">💡</span> The Minds That Inspire Me <span class="bulb" style="animation-delay:.9s">💡</span></div><div style="display:flex;gap:10px;flex-wrap:nowrap;padding:8px 0">${PHYS.map((x,ix)=>`<div class="ic" onclick="idol(${ix},this)" style="text-align:center;flex:1 1 0;min-width:0;max-width:92px">${x[2]?`<img src="${x[2]}" alt="" style="display:block;width:100%;aspect-ratio:1/1;border-radius:50%;object-fit:cover">`:`<div class="ph" style="width:100%;aspect-ratio:1/1;border-radius:50%;background:${x[1]};color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(x[0].replace(/[^A-Z]/g,'').slice(0,2)||x[0][0])}</div>`}<div class="mut" style="font-size:11px;margin-top:3px;line-height:1.25">${esc(x[0])}</div>${IDSUB[x[0]]?`<div class="isub">${IDSUB[x[0]]}</div>`:''}</div>`).join('')}</div><div id="ib" class="ib"></div></div>`;
+const bannerFull=()=>`<div class="p3d"><div class="row" style="gap:14px;margin:0;flex-wrap:nowrap;align-items:center"><div style="flex:none;width:84px;text-align:center"><img class="tav" src="${TEACHER}" alt="" width="84" height="84">${isTeacher?'<div class="mut" style="font-size:11px;font-weight:700;margin-top:4px">Admin</div>':''}</div><div style="line-height:1.3;min-width:0"><div class="tt">${isSub(bnSec())?'Science &amp; Maths':'Physics'} by ${TNAME}</div><div class="mut" style="font-size:14px;font-weight:600;margin-top:3px">CBSE / NEET / JEE Mains</div><span class="tbd">15 + Years of Experience</span></div></div><div class="tgl">Conceptual learning <span class="arw">➜</span> Daily practice <span class="arw">➜</span> Everything is possible 💡</div>${CLSLINE[bnSec()]?`<div class="cln">${arw(CLSLINE[bnSec()])}</div>`:''}</div><div class="idl"><div class="mut" style="font-weight:700;margin:0 0 6px"><span class="bulb">💡</span> The Minds That Inspire Me <span class="bulb" style="animation-delay:.9s">💡</span></div><div style="display:flex;gap:10px;flex-wrap:nowrap;padding:8px 0">${PHYS.map((x,ix)=>`<div class="ic" onclick="idol(${ix},this)" style="text-align:center;flex:1 1 0;min-width:0;max-width:92px">${x[2]?`<img src="${x[2]}" alt="" style="display:block;width:100%;aspect-ratio:1/1;border-radius:50%;object-fit:cover">`:`<div class="ph" style="width:100%;aspect-ratio:1/1;border-radius:50%;background:${x[1]};color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(x[0].replace(/[^A-Z]/g,'').slice(0,2)||x[0][0])}</div>`}<div class="mut" style="font-size:11px;margin-top:3px;line-height:1.25">${esc(x[0])}</div>${IDSUB[x[0]]?`<div class="isub">${IDSUB[x[0]]}</div>`:''}</div>`).join('')}</div><div id="ib" class="ib"></div></div>`;
 let myEmail='',myClass='',mySec='',myExtra=[],stab='tests',stuOpen=false,subj='Science';const mySecs=()=>[mySec].concat(myExtra.filter(x=>x&&x!==mySec));
 const CLS={IX:'Class IX',X:'Class X',XI:'Physics XI',XII:'Physics XII'};
-const logoTop=()=>`<div style="text-align:center;margin-top:24px"><img src="${LOGO}" width="96" height="96" style="border-radius:50%" alt=""><h1>The Wave Academy</h1><p class="mut">Online Tests</p></div>${banner()}`;
+const banner=nm=>nm?bannerFull().split('<div class="idl">')[0]:bannerFull();
+const logoTop=()=>`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1></div></div>${banner(true)}`;
 const clsOpts=()=>Object.keys(CLS).map(c=>`<option>${c}</option>`).join('');
 const box=(v,l)=>`<div class="card" style="flex:1;text-align:center;margin:0"><div class="big" style="font-size:26px">${v}</div><div class="mut">${l}</div></div>`;
 const bar=p=>`<div style="background:var(--ac2);border-radius:6px;height:10px;margin:8px 0"><div style="width:${p}%;height:10px;border-radius:6px;background:${p>=60?'var(--ok)':p>=35?'var(--ac)':'var(--bad)'}"></div></div>`;
@@ -147,8 +159,8 @@ function init(){
       r.docs.forEach(d=>{const x=d.data();(mineAll[x.testId]=mineAll[x.testId]||[]).push(x)});Object.keys(mineAll).forEach(k=>{mineAll[k].sort((a,b)=>(a.attempt||1)-(b.attempt||1));mine[k]=mineAll[k][mineAll[k].length-1]});ar.docs.forEach(d=>att[d.id]=d.data());
       if(!isTeacher){try{(await db.collection('retakes').where('uid','==',uid).get()).docs.forEach(d=>{const x=d.data();allowed[x.testId]=x.allowed||1})}catch(e){}}
       if(!isTeacher)sec=mySec;
-      const col=db.collection('tests'),upd=()=>{const mp=new Map();[].concat(...Object.values(parts)).forEach(x=>mp.set(x.id,x));rawTests=[...mp.values()].sort((a,b)=>b.created-a.created);applyVis();const sig=rawTests.map(t=>[t.id,t.published,t.publishAt,t.deadline,(t.assigned||[]).join(),t.title,t.section,t.subject,(t.questions||[]).length].join('~')).join('|');if(loaded&&sig===lastSig)return;lastSig=sig;const go=()=>{if(!timer&&!draft){const y=window.scrollY;if(!openHash())home();window.scrollTo(0,y)}};if(loaded&&!isTeacher&&!timer)refreshMine().then(go);else go()},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
-      if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));parts.all.filter(t=>t.publishAt>0&&t.sched!==true).forEach(t=>{try{col.doc(t.id).update({sched:true}).catch(()=>{})}catch(e){}});upd()},fail);unsub=us}
+      const col=db.collection('tests'),upd=()=>{const mp=new Map();[].concat(...Object.values(parts)).forEach(x=>mp.set(x.id,x));rawTests=[...mp.values()].sort((a,b)=>b.created-a.created);applyVis();const sig=rawTests.map(t=>[t.id,t.published,t.publishAt,t.deadline,(t.assigned||[]).join(),t.title,t.section,t.subject,(t.questions||[]).length].join('~')).join('|');if(loaded&&sig===lastSig)return;lastSig=sig;const go=()=>{if(!timer&&!draft){const y=window.scrollY;if(!openHash())home();window.scrollTo(0,y)}};if(loaded&&!isTeacher&&!timer)refreshMine().then(go);else go();if(!isTeacher)autoLeft()},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
+      if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));setTimeout(fixNums,500);parts.all.filter(t=>t.publishAt>0&&t.sched!==true).forEach(t=>{try{col.doc(t.id).update({sched:true}).catch(()=>{})}catch(e){}});upd()},fail);unsub=us}
       else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));mySecs().forEach(sc=>us.push(col.where('section','==',sc).where('sched','==',true).onSnapshot(s=>{parts['sch'+sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{})));us.push(col.where('assigned','array-contains',uid).onSnapshot(s=>{parts.asg=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));unsub=()=>us.forEach(f=>f&&f())}
       loaded=true;if(!openHash())home();
     }catch(e){h('<div class="card">Something went wrong: '+esc(e.message||e)+'</div><button class="sec" onclick="logout()">Logout</button>')}
@@ -256,7 +268,7 @@ async function lockTick(){
   if(isTeacher||!uid||timer||draft)return;
   if(!document.querySelector('.cdw'))return;
   const now=Date.now(),L=tests.filter(locked);
-  const key=L.map(t=>t.id+':'+(t.publishAt-now<=60000?1:0)).join()+'|'+tests.filter(t=>t.publishAt>0&&t.published!==true&&t.publishAt<=now).map(t=>t.id).join();
+  const key=L.map(t=>t.id+':'+(t.publishAt-now<=120000?1:0)).join()+'|'+tests.filter(t=>t.publishAt>0&&t.published!==true&&t.publishAt<=now).map(t=>t.id).join();
   document.querySelectorAll('.cd').forEach(e=>{e.textContent=cdTxt(+e.dataset.at-now)});
   if(lockKey===null){lockKey=key;return}
   if(key!==lockKey){lockKey=key;applyVis();await refreshMine();const y=window.scrollY;home();window.scrollTo(0,y)}
@@ -275,7 +287,20 @@ const over=t=>t.deadline&&Date.now()>t.deadline&&!isAsg(t);
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
 const lob=()=>`<div style="margin-top:26px;text-align:right"><button class="bg" onclick="logout()">Logout</button></div>`;
 const subTabs=()=>isSub(sec)?`<div class="tabg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">${[['Science','🔬 Science'],['Maths','➕ Maths']].map(a=>`<button class="gold ${subj===a[0]?'on':''}" style="padding:12px 2px" onclick="subj='${a[0]}';home()">${a[1]}</button>`).join('')}</div>`:'';
-let rawTests=[],schedT=null,lastSig='';
+let rawTests=[],schedT=null,lastSig='',numBusy=false;
+const numTxt=t=>t.num>0?'Test '+String(t.num).padStart(2,'0'):'';
+const grpOf=t=>(t.section||'Other')+'|'+(isSub(t.section)?(t.subject||'Science'):'');
+const nextNum=t=>1+Math.max(0,...rawTests.filter(x=>x.id!==t.id&&grpOf(x)===grpOf(t)).map(x=>x.num||0));
+async function fixNums(){
+  if(numBusy||!isTeacher)return;
+  const need=rawTests.filter(t=>!t.num&&(t.published===true||t.publishAt>0));if(!need.length)return;
+  numBusy=true;
+  try{const g={};need.forEach(t=>(g[grpOf(t)]=g[grpOf(t)]||[]).push(t));
+    for(const k of Object.keys(g)){const L=g[k].sort((a,b)=>(a.publishAt||a.created||0)-(b.publishAt||b.created||0));let n=Math.max(0,...rawTests.filter(x=>grpOf(x)===k).map(x=>x.num||0));
+      for(const t of L){n++;await db.collection('tests').doc(t.id).update({num:n}).catch(()=>{})}}}catch(e){}
+  numBusy=false;
+}
+const sortT=a=>isTeacher?a.slice().sort((x,y)=>{const p=x.num||0,q=y.num||0;if(!p&&!q)return(y.created||0)-(x.created||0);if(!p)return -1;if(!q)return 1;return q-p}):a.slice().sort((x,y)=>{const dx=mine[x.id]&&!canRetake(x.id)?1:0,dy=mine[y.id]&&!canRetake(y.id)?1:0;return dx-dy||(x.num||9999)-(y.num||9999)||(x.created||0)-(y.created||0)});
 function applyVis(){
   if(!isTeacher)rawTests.forEach(t=>{const a=att[t.id];if(t.ver&&a&&(a.updated||0)<t.ver&&!isAsg(t)&&!(mine[t.id]&&canRetake(t.id))){delete att[t.id];try{db.collection('users/'+uid+'/attempts').doc(t.id).delete().catch(()=>{})}catch(e){}}});
   tests=isTeacher?rawTests:rawTests.filter(t=>pubNow(t)||isAsg(t)||(t.publishAt>0&&mySecs().includes(t.section)));
@@ -287,12 +312,12 @@ const lt=ms=>{const d=new Date(ms-new Date(ms).getTimezoneOffset()*60000);return
 function schedOpen(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
   const at=t.publishAt>0?t.publishAt:Math.ceil((Date.now()+36e5)/36e5)*36e5,hrs=t.schedHrs||2;
-  h(`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">Schedule publish</h1><p class="mut">${esc(t.title)}</p><div class="card"><label class="mut">Publish on (date and time)</label><input type="datetime-local" id="sdt" value="${lt(at)}"><label class="mut">Students can start the test for</label><select id="shr">${[1,2,3].map(n=>`<option value="${n}" ${n===hrs?'selected':''}>${n} hour${n>1?'s':''}</option>`).join('')}</select><p class="mut" style="margin:8px 0 0">Students can see the test before the chosen time, but it stays locked. A countdown appears in the last minute, and the test opens at the chosen time. The deadline is set automatically to the chosen window after that. Students must start within the window; the normal test timer still applies.</p></div><div class="row"><button onclick="schedSave('${id}')">Save schedule</button>${t.publishAt>0?`<button class="sec" onclick="schedClear('${id}')">Remove schedule</button>`:''}<button class="sec" onclick="home()">Cancel</button></div>`);
+  h(`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">Schedule publish</h1><p class="mut">${esc(t.title)}</p><div class="card"><label class="mut">Publish on (date and time)</label><input type="datetime-local" id="sdt" value="${lt(at)}"><label class="mut">Students can start the test for</label><select id="shr">${[1,2,3].map(n=>`<option value="${n}" ${n===hrs?'selected':''}>${n} hour${n>1?'s':''}</option>`).join('')}</select><p class="mut" style="margin:8px 0 0">Students can see the test before the chosen time, but it stays locked. A countdown appears in the last 2 minutes, and the test opens at the chosen time. The deadline is set automatically to the chosen window after that. Students must start within the window; the normal test timer still applies.</p></div><div class="row"><button onclick="schedSave('${id}')">Save schedule</button>${t.publishAt>0?`<button class="sec" onclick="schedClear('${id}')">Remove schedule</button>`:''}<button class="sec" onclick="home()">Cancel</button></div>`);
 }
 async function schedSave(id){
   const v=document.getElementById('sdt').value,hr=+document.getElementById('shr').value||2,ms=v?new Date(v).getTime():0;
   if(!ms||ms<=Date.now())return alert('Please choose a time in the future.');
-  try{await db.collection('tests').doc(id).update({published:false,sched:true,publishAt:ms,deadline:ms+hr*36e5,schedHrs:hr});alert('Scheduled for '+new Date(ms).toLocaleString()+'. Deadline: '+new Date(ms+hr*36e5).toLocaleString());home()}
+  try{await db.collection('tests').doc(id).update({...((()=>{const tt=tests.find(x=>x.id===id);return tt&&!tt.num?{num:nextNum(tt)}:{}})()),published:false,sched:true,publishAt:ms,deadline:ms+hr*36e5,schedHrs:hr});alert('Scheduled for '+new Date(ms).toLocaleString()+'. Deadline: '+new Date(ms+hr*36e5).toLocaleString());home()}
   catch(e){alert('Could not save: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
 }
 async function schedClear(id){
@@ -338,11 +363,11 @@ async function asgSave(){
   catch(e){alert('Could not save: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
 }
 function stuTC(t){
-  if(locked(t)){const left=t.publishAt-Date.now(),soon=left<=60000;
-    return `<div class="card cdw" data-id="${t.id}"><div class="row sp"><div><h2>${esc(t.title)}<span class="bdg n">🔒 Upcoming</span></h2><div class="mut">${t.questions.length} questions · ${durMin(t)} min</div>${soon?`<div style="margin-top:8px;font-size:15px">Starts in</div><div class="big cd" data-at="${t.publishAt}" style="color:var(--ac)">${cdTxt(left)}</div>`:`<div style="margin-top:6px">🕒 Opens on ${new Date(t.publishAt).toLocaleString()}</div><div class="mut">A countdown will appear 1 minute before the start.</div>`}</div><div class="row"><button disabled style="opacity:.5">Start</button></div></div></div>`}
+  if(locked(t)){const left=t.publishAt-Date.now(),soon=left<=120000;
+    return `<div class="card cdw" data-id="${t.id}"><div class="row sp"><div><h2>${numTxt(t)?'<span style="color:var(--ac)">'+numTxt(t)+'</span> · ':''}${esc(t.title)}<span class="bdg n">🔒 Upcoming</span></h2><div class="mut">${t.questions.length} questions · ${durMin(t)} min</div>${soon?`<div style="margin-top:8px;font-size:15px">Starts in</div><div class="big cd" data-at="${t.publishAt}" style="color:var(--ac)">${cdTxt(left)}</div>`:`<div style="margin-top:6px">🕒 Opens on ${new Date(t.publishAt).toLocaleString()}</div><div class="mut">A countdown will appear 2 minutes before the start.</div>`}</div><div class="row"><button disabled style="opacity:.5">Start</button></div></div></div>`}
   const done=mine[t.id],a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id),info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline&&!isAsg(t)?' · until '+new Date(t.deadline).toLocaleString():''}`;
     const pcx=done&&done.total?Math.max(0,Math.round(done.score/done.total*100)):0,bd=rt?'<span class="bdg pz">🔁 Retake</span>':done?`<span class="bdg ${pcx>=60?'ok':pcx>=35?'md':'lo'}">Score ${pcx}%</span>`:a?'<span class="bdg md">⏸ In progress</span>':over(t)?'':'<span class="bdg n">🆕 New</span>';
-    return `<div class="card"><div class="row sp"><div><h2>${esc(t.title)}${bd}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
+    return `<div class="card"><div class="row sp"><div><h2>${numTxt(t)?'<span style="color:var(--ac)">'+numTxt(t)+'</span> · ':''}${esc(t.title)}${bd}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
     <div class="row">${done?`<b>${done.score}/${done.total}</b>${all.length>1?all.map((r,i)=>`<button onclick="showReview('${t.id}','',${i})">Attempt ${i+1}</button>`).join(''):`<button onclick="showReview('${t.id}')">View answers</button>`}${rt?`<button onclick="start('${t.id}')">${a?'Resume':'🔁 Retake'}</button>`:''}`:(a?`<button onclick="start('${t.id}')">Resume</button>`:(over(t)?`<b style="color:var(--bad)">Time Over!!!</b>`:`<button onclick="start('${t.id}')">Start</button>`))}</div></div></div>`;
 }
 const disSet=()=>{try{return JSON.parse(localStorage.getItem('wa_dis')||'[]')}catch(e){return []}};
@@ -360,7 +385,7 @@ function stuCard(sc){
   if(!all.length&&!pubs.length)return '';
   return `<div class="card"><div class="stc">${st?`<span class="pl">🔥 ${st}-day streak</span>`:'<span class="pl">🚀 Start your first test today</span>'}<span class="pl">✅ ${wk} test${wk===1?'':'s'} this week</span>${pubs.length?`<span class="pl">📘 ${dn}/${pubs.length} done${sc?' in '+esc(sc):''}</span>`:''}</div>${pubs.length?`<div class="stp"><div style="width:${pc}%"></div></div>`:''}</div>`;
 }
-function home(){normMine();
+function home(){normMine();wmOn=false;
   draft=null;
   rootNext=isTeacher?(sec===null?'root':'sec'):(mySecs().length<2||!stuOpen?'root':'sec');
   if(!isTeacher&&!mySecs().includes(sec))sec=mySec;
@@ -382,14 +407,14 @@ function home(){normMine();
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   o+=subTabs();
   if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`;
-  const ts=tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t)));
+  const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))));
   if(!ts.length)o+=`<div class="card mut">No tests in ${isSub(sec)?esc(subj)+' ':'this section '}yet.</div>`;
   ts.forEach(t=>{
     const done=mine[t.id],pub=pubNow(t),a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
     const info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline?' · until '+new Date(t.deadline).toLocaleString():''}`;
     if(isTeacher){
-      o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+new Date(t.publishAt).toLocaleString()+'</span><div class="mut">Deadline: '+(t.deadline?new Date(t.deadline).toLocaleString():'none')+'</div>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div></div><span class="mut">Students ›</span></div>
-      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
+      o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">${numTxt(t)||'Topic'}:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+new Date(t.publishAt).toLocaleString()+'</span><div class="mut">Deadline: '+(t.deadline?new Date(t.deadline).toLocaleString():'none')+'</div>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div></div><span class="mut">Students ›</span></div>
+      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
       return;
     }
     o+=stuTC(t);
@@ -1045,19 +1070,41 @@ function start(id){
 }
 function begin(id){
   const t=tests.find(x=>x.id===id);if(!t)return;if(locked(t))return home();
-  const a=att[id],n=t.questions.length;if(mine[id]&&!canRetake(id))return home();if(over(t)&&!a&&!canRetake(id))return timeOver();
+  const a=att[id],n=t.questions.length;if(a&&a.left>0){autoLeft();return}if(mine[id]&&!canRetake(id))return home();if(over(t)&&!a&&!canRetake(id))return timeOver();
   cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:durMin(t)*60000,last:Date.now(),saved:0};
   document.addEventListener('visibilitychange',onVis);window.addEventListener('pagehide',onHide);
   drawTest();clearInterval(timer);timer=setInterval(tick,1000);saveAttempt();
 }
 function saveAttempt(){
   if(!cur)return;cur.saved=Date.now();
-  const rec={answers:cur.ans,times:cur.times.map(v=>Math.round(v)),idx:cur.i,remaining:Math.max(0,Math.round(cur.rem)),updated:Date.now()};
+  const rec={answers:cur.ans,times:cur.times.map(v=>Math.round(v)),idx:cur.i,remaining:Math.max(0,Math.round(cur.rem)),updated:Date.now(),left:cur.leftAt||0};
   att[cur.t.id]=rec;
   try{db.collection('users/'+uid+'/attempts').doc(cur.t.id).set(rec).catch(()=>{})}catch(e){}
 }
-function onVis(){if(!cur)return;if(document.visibilityState==='hidden')saveAttempt();else cur.last=Date.now()}
-function onHide(){if(cur)saveAttempt()}
+function onVis(){
+  if(!cur)return;
+  if(document.visibilityState==='hidden'){if(!cur.leftAt)cur.leftAt=Date.now();saveAttempt();return}
+  cur.last=Date.now();
+  if(cur.leftAt){const gap=Date.now()-cur.leftAt;
+    if(gap<=5000){cur.leftAt=0;saveAttempt();toast('Do not leave the test. Leaving the app submits it.')}
+    else{const at=cur.leftAt;submit('left',at)}}
+}
+function onHide(){if(cur){if(!cur.leftAt)cur.leftAt=Date.now();saveAttempt()}}
+async function autoLeft(){
+  if(isTeacher||timer||leftBusy)return;
+  const ids=Object.keys(att).filter(id=>att[id]&&att[id].left>0&&tests.some(t=>t.id===id)&&(!mine[id]||canRetake(id)));
+  if(!ids.length)return;leftBusy=true;
+  for(const id of ids){const t=tests.find(x=>x.id===id),a=att[id],n=t.questions.length,ans=a.answers&&a.answers.length===n?a.answers:new Array(n).fill(-1);
+    const rec=buildRec(t,ans,(a.times||[]).map(v=>Math.round(v/1000)),a.left);
+    try{await saveRec(rec);toast('Your test "'+t.title+'" was submitted because you left the app.')}catch(e){}}
+  leftBusy=false;
+  const y=window.scrollY;home();window.scrollTo(0,y);
+}
+let leftBusy=false;
+function buildRec(t,ans,times,at){
+  const mk=hasNeg(t),nq=t.questions.length,cc=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0),ww=ans.reduce((n,a,i)=>n+(a>=0&&a!==t.questions[i].answer?1:0),0);
+  return {testId:t.id,uid,name:myName,email:myEmail,score:mk?4*cc-ww:cc,total:mk?4*nq:nq,answers:ans,times,at,left:1,...(mk?{mk:1}:{}),...((mineAll[t.id]||[]).length?{attempt:mineAll[t.id].length+1}:{})};
+}
 function tick(){
   if(!cur)return;
   const now=Date.now();
@@ -1069,13 +1116,14 @@ function tick(){
   if(now-cur.saved>30000)saveAttempt();
 }
 function drawTest(){
+  wmOn=true;
   if(cur.screen==='c')return drawConfirm();
   const {t,ans,i}=cur,q=t.questions[i],n=t.questions.length,last=i===n-1;
   const nav=t.questions.map((_,k)=>`<button id="nv${k}" class="nv ${k===i?'cu':''} ${ans[k]>=0?'dn':''}" onclick="goQ(${k})">${k+1}</button>`).join('');
   let o=`<div class="timer" id="tm"></div><div class="row sp" style="margin:8px 0"><b>${esc(t.title)}</b><span class="mut" id="cnt">${ans.filter(a=>a>=0).length}/${n} answered</span></div><div class="nvbar">${nav}</div><div class="mut" style="margin:8px 0 4px;font-size:13px">Filled = answered · Tap any number to jump to that question</div><div class="mut" style="margin:6px 0 4px">Question ${i+1} of ${n}</div><div class="card"><b>${fmt(q.q)}</b>${imgQ(q)}`;
   q.options.forEach((op,j)=>o+=`<div class="opt ${ans[i]===j?'sel':''}" id="op${j}" onclick="pick(${j})">${optHtml(q,j)}</div>`);
   o+=`<button class="del" id="clr" style="${ans[i]>=0?'':'display:none'}" onclick="pick(-1)">Clear my answer</button></div>`;
-  o+=`<div class="row" style="margin-top:6px"><button class="sec" onclick="goQ(${i-1})" ${i===0?'disabled':''}>← Previous</button>${last?`<button id="nx" onclick="askSubmit()">Finish &amp; submit</button>`:`<button id="nx" onclick="goQ(${i+1})">Next →</button>`}</div>`;
+  o+=`<div class="row" style="margin-top:6px">${i===0?'':`<button class="sec" onclick="goQ(${i-1})">← Previous</button>`}${last?`<button id="nx" onclick="askSubmit()">Finish &amp; submit</button>`:`<button id="nx" onclick="goQ(${i+1})">Next →</button>`}</div>`;
   h(o);tick();
 }
 function goQ(k){if(!cur||k<0||k>=cur.t.questions.length)return;cur.i=k;cur.screen='q';drawTest();saveAttempt()}
@@ -1090,7 +1138,7 @@ function pick(j){
 function askSubmit(){cur.screen='c';drawConfirm()}
 function drawConfirm(){
   const {t,ans}=cur,n=t.questions.length,un=[];ans.forEach((a,k)=>{if(a<0)un.push(k)});
-  h(`<div class="timer" id="tm"></div><h1>Submit test?</h1><div class="card"><p>You have answered <b>${n-un.length}</b> of <b>${n}</b> questions.</p>${un.length?`<p>Not answered:</p><div class="nvbar">${un.map(k=>`<button class="nv" onclick="goQ(${k})">${k+1}</button>`).join('')}</div><p class="mut">Tap a number to go back to that question.</p>`:''}<p class="mut">After you submit, you can’t change your answers or take this test again.</p><div class="row"><button onclick="submit(false)">Yes, submit</button><button class="sec" onclick="goQ(${cur.i})">Go back</button></div></div>`);
+  h(`<div class="timer" id="tm"></div><h1>Submit test?</h1><div class="card"><p>You have answered <b>${n-un.length}</b> of <b>${n}</b> questions.</p>${un.length?`<p>Not answered:</p><div class="nvbar">${un.map(k=>`<button class="nv" onclick="goQ(${k})">${k+1}</button>`).join('')}</div><p class="mut">Tap a number to go back to that question.</p>`:''}<div style="border:2px solid var(--bad);background:rgba(220,60,60,.12);border-radius:12px;padding:12px;margin:10px 0;font-weight:700;color:var(--bad)">⚠️ Warning: ${un.length?un.length+' question'+(un.length>1?'s are':' is')+' still unanswered. ':''}Once you submit, you cannot change your answers or take this test again.</div><div class="row"><button onclick="goQ(${un.length?un[0]:cur.i})">Go back and review</button><button style="background:var(--bad);color:#fff" onclick="submit(false)">Yes, submit now</button></div></div>`);
   tick();
 }
 async function saveRec(rec){
@@ -1100,14 +1148,14 @@ async function saveRec(rec){
   try{await db.collection('users/'+uid+'/attempts').doc(rec.testId).delete()}catch(e){}
   delete att[rec.testId];const L=mineAll[rec.testId]=mineAll[rec.testId]||[];if(!L.some(z=>(z.attempt||1)===(rec.attempt||1)))L.push(rec);mine[rec.testId]=L[L.length-1];
 }
-async function submit(auto){
+async function submit(auto,leftAt){
   if(!cur)return;
   clearInterval(timer);timer=null;
   document.removeEventListener('visibilitychange',onVis);window.removeEventListener('pagehide',onHide);
   const {t,ans}=cur,times=cur.times.map(v=>Math.round(v/1000));cur=null;
   const mk=hasNeg(t),nq=t.questions.length,cc=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0),ww=ans.reduce((n,a,i)=>n+(a>=0&&a!==t.questions[i].answer?1:0),0);
   const total=mk?4*nq:nq,score=mk?4*cc-ww:cc;
-  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:Date.now(),...(mk?{mk:1}:{}),...((mineAll[t.id]||[]).length?{attempt:mineAll[t.id].length+1}:{})},auto};
+  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:leftAt||Date.now(),...(leftAt?{left:1}:{}),...(mk?{mk:1}:{}),...((mineAll[t.id]||[]).length?{attempt:mineAll[t.id].length+1}:{})},auto};
   await finishSave();
 }
 async function finishSave(){
@@ -1159,10 +1207,10 @@ function scorePop(rec){try{const old=document.getElementById('spop');if(old)old.
   d.innerHTML='<div style="background:#1b1f2b;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:26px 22px;max-width:340px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.6)"><div style="font-size:52px">'+m[0]+'</div><div style="font-size:30px;font-weight:700;margin:6px 0">'+rec.score+'/'+rec.total+'</div><div style="font-size:16px;line-height:1.5">'+m[1]+'</div></div>';
   if(!document.getElementById('spst')){const st=document.createElement('style');st.id='spst';st.textContent='@keyframes spIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}';document.head.appendChild(st)}
   document.body.appendChild(d);setTimeout(()=>{d.style.transition='opacity .4s';d.style.opacity='0';setTimeout(()=>d.remove(),450)},7000)}catch(e){}}
-function showResult(id,auto,fx){normMine();
+function showResult(id,auto,fx){normMine();wmOn=true;
   const t=tests.find(x=>x.id===id),rec=mine[id];if(!t||!rec)return home();
   const ans=rec.answers||[],times=rec.times||[];
-  let o=`<h1>${auto?'Time’s up!':'Submitted!'}${rec.attempt>1?' (Attempt '+rec.attempt+')':''}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div>${(()=>{const m=scoreMsg(Math.max(0,rec.score/rec.total*100));return '<div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.07);font-size:15px;line-height:1.5"><span style="font-size:22px">'+m[0]+'</span><br>'+m[1]+'</div>'})()}</div>${brk(t,rec)}<h2>Review</h2>`;
+  let o=`${auto==='left'?'<div style="border:2px solid var(--bad);background:rgba(220,60,60,.15);border-radius:12px;padding:12px;margin:8px 0;color:#fff;font-weight:700">⚠️ Your test was submitted automatically because you left the app.</div>':''}<h1>${auto==='left'?'Test submitted':auto?'Time’s up!':'Submitted!'}${rec.attempt>1?' (Attempt '+rec.attempt+')':''}</h1><div class="card" style="text-align:center"><div class="mut">Your score</div><div class="big">${rec.score}/${rec.total}</div><div class="mut">${Math.round(rec.score/rec.total*100)}%</div>${(()=>{const m=scoreMsg(Math.max(0,rec.score/rec.total*100));return '<div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.07);font-size:15px;line-height:1.5"><span style="font-size:22px">'+m[0]+'</span><br>'+m[1]+'</div>'})()}</div>${brk(t,rec)}<h2>Review</h2>`;
   t.questions.forEach((q,i)=>{
     o+=`<div class="card">${qTag(q,ans[i],times,i)}<b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;
     q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
@@ -1213,7 +1261,7 @@ function drawResults(){
   <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1d4ed8">●</span> Blue = attempted (tap for test analysis) &nbsp; <span style="color:#8b0000">●</span> Dark red = not attempted</p><div>`;
   const topS=done.length?done[0].res.score:null;
-  done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>x.all.length?' 🔁':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
+  done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>x.all.length?' 🔁':''}${x.all.some(r=>r.left)?' ⚠️<small style="opacity:.9"> Left the app</small>':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
   no.forEach(x=>o+=`<button class="pill stk no" onclick="notTaken('${x.uid}')"><span>${esc(x.name)}</span></button>`);
   if(!rows.length)o+='<div class="card mut">No students have joined this class yet.</div>';
   h(o+`</div><div id="nt"></div>`);
@@ -1293,11 +1341,11 @@ async function togglePub(id,v){
       if(!confirm(n?'Unpublish this test?\n\n'+n+' student(s) have taken it. Their results for this test will be PERMANENTLY DELETED (also from their progress). This cannot be undone.':'Unpublish this test?'))return;
       if(n)await wipeResults(id,keep,null);
     }
-    const tt=tests.find(x=>x.id===id),up={published:v,publishAt:0,sched:false,ver:Date.now()};if(v&&tt&&tt.publishAt>0)up.deadline=0;
+    const tt=tests.find(x=>x.id===id),up={published:v,publishAt:0,sched:false,ver:Date.now()};if(v&&tt&&!tt.num)up.num=nextNum(tt);if(v&&tt&&tt.publishAt>0)up.deadline=0;
     await db.collection('tests').doc(id).update(up);
   }catch(e){alert('Could not change: '+(e.message||e))}
 }
-function progress(){normMine();
+function progress(){normMine();wmOn=false;
   const items=[];Object.keys(mineAll).forEach(k=>mineAll[k].forEach((r,i)=>items.push({...r,id:k,ai:i,n:mineAll[k].length})));items.splice(0,items.length,...items.filter(x=>tests.some(y=>y.id===x.id)));items.sort((a,b)=>b.at-a.at);
   if(!items.length)return h('<h1>My progress</h1><div class="card mut">You haven’t taken any tests yet.</div><button onclick="home()">Back</button>');
   const pct=x=>Math.round(x.score/x.total*100),avg=Math.round(items.reduce((s,x)=>s+pct(x),0)/items.length),best=Math.max(...items.map(pct));
@@ -1315,7 +1363,7 @@ function timeChips(t,x){
   const tot=x.times.reduce((a,b)=>a+(b||0),0),an=x.answers||[];
   return `<div class="mut" style="margin-bottom:6px">⏱ Total time: <b>${ft(tot)}</b></div><div class="row" style="gap:6px">${t.questions.map((q,i)=>{const sk=an[i]<0,ok=an[i]===q.answer;return `<span style="padding:3px 8px;border-radius:8px;background:var(--ac2);font-size:13px">Q${i+1} <span style="color:var(--${sk?'mut':ok?'ok':'bad'})">${sk?'–':ok?'✓':'✗'}</span> ${ft(x.times[i]||0)}</span>`}).join('')}</div>`;
 }
-function showReview(id,from,k){normMine();
+function showReview(id,from,k){normMine();wmOn=true;
   const t=tests.find(x=>x.id===id),rec=(k!=null&&k!==''&&mineAll[id])?mineAll[id][k]:mine[id];if(!t||!rec)return;
   const ans=rec.answers||[],times=rec.times||[];
   let o=`<h1>${esc(t.title)}${(mineAll[id]||[]).length>1?' – Attempt '+(rec.attempt||1):''}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
