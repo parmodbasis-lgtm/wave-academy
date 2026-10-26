@@ -67,14 +67,16 @@ button:disabled{opacity:.5}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Lora:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Lora:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const loadJs=u=>new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=no;document.head.appendChild(e)});
+async function wordLibs(){try{if(typeof JSZip==='undefined')await loadJs('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');if(typeof mammoth==='undefined')await loadJs('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js')}catch(e){}}
+</script>
 </head>
 <body>
-<main id="app"><p class="mut">Loading…</p></main><div id="pp"></div>
+<main id="app"><div style="text-align:center;margin-top:60px;color:#fff"><div style="font-size:26px;font-weight:700">The Wave Academy</div><p class="mut">Loading…</p></div></main><div id="pp"></div>
 <script>
 const $app=document.getElementById('app');
 let db=null,user=null,uid=null,myName='',isTeacher=false,tests=[],mine={},mineAll={},allowed={},timer=null,draft=null,opened=false,loaded=false,sec=null;
@@ -82,7 +84,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}});document.querySelectorAll('.tgl').forEach(e=>{let f=14;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth+1&&f>7){f-=.5;e.style.fontSize=f+'px'}})};
 let rootNext=null,pushed=false,ignorePop=false,viewKind='root';
 const toast=m=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:999;max-width:85%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5)';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none'},2200)};
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-F</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-I</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -247,6 +249,19 @@ function copyLink(){
 }
 const isAsg=t=>!isTeacher&&!!uid&&Array.isArray(t.assigned)&&t.assigned.includes(uid);
 const pubNow=t=>t.published===true||(t.publishAt>0&&Date.now()>=t.publishAt);
+const locked=t=>!isTeacher&&t.published!==true&&t.publishAt>Date.now();
+const cdTxt=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+let lockKey=null;
+async function lockTick(){
+  if(isTeacher||!uid||timer||draft)return;
+  if(!document.querySelector('.cdw'))return;
+  const now=Date.now(),L=tests.filter(locked);
+  const key=L.map(t=>t.id+':'+(t.publishAt-now<=60000?1:0)).join()+'|'+tests.filter(t=>t.publishAt>0&&t.published!==true&&t.publishAt<=now).map(t=>t.id).join();
+  document.querySelectorAll('.cd').forEach(e=>{e.textContent=cdTxt(+e.dataset.at-now)});
+  if(lockKey===null){lockKey=key;return}
+  if(key!==lockKey){lockKey=key;applyVis();await refreshMine();const y=window.scrollY;home();window.scrollTo(0,y)}
+}
+setInterval(lockTick,1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lockTick()});
 const excl=t=>isAsg(t)&&!(pubNow(t)&&mySecs().includes(t.section));
 const over=t=>t.deadline&&Date.now()>t.deadline&&!isAsg(t);
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
@@ -254,7 +269,7 @@ const lob=()=>`<div style="margin-top:26px;text-align:right"><button class="bg" 
 const subTabs=()=>isSub(sec)?`<div class="tabg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">${[['Science','🔬 Science'],['Maths','➕ Maths']].map(a=>`<button class="gold ${subj===a[0]?'on':''}" style="padding:12px 2px" onclick="subj='${a[0]}';home()">${a[1]}</button>`).join('')}</div>`:'';
 let rawTests=[],schedT=null,lastSig='';
 function applyVis(){
-  tests=isTeacher?rawTests:rawTests.filter(t=>pubNow(t)||isAsg(t));
+  tests=isTeacher?rawTests:rawTests.filter(t=>pubNow(t)||isAsg(t)||(t.publishAt>0&&mySecs().includes(t.section)));
   clearTimeout(schedT);
   if(!isTeacher){const fut=rawTests.filter(t=>t.publishAt>0&&t.publishAt>Date.now()).map(t=>t.publishAt);
     if(fut.length){const d=Math.min(Math.min(...fut)-Date.now()+400,2e9);schedT=setTimeout(async()=>{applyVis();if(!timer&&!draft){await refreshMine();const y=window.scrollY;home();window.scrollTo(0,y)}},d)}}
@@ -263,7 +278,7 @@ const lt=ms=>{const d=new Date(ms-new Date(ms).getTimezoneOffset()*60000);return
 function schedOpen(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
   const at=t.publishAt>0?t.publishAt:Math.ceil((Date.now()+36e5)/36e5)*36e5,hrs=t.schedHrs||2;
-  h(`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">Schedule publish</h1><p class="mut">${esc(t.title)}</p><div class="card"><label class="mut">Publish on (date and time)</label><input type="datetime-local" id="sdt" value="${lt(at)}"><label class="mut">Students can start the test for</label><select id="shr">${[1,2,3].map(n=>`<option value="${n}" ${n===hrs?'selected':''}>${n} hour${n>1?'s':''}</option>`).join('')}</select><p class="mut" style="margin:8px 0 0">The test appears for students at the chosen time. The deadline is set automatically to the chosen window after that. Students must start within the window; the normal test timer still applies.</p></div><div class="row"><button onclick="schedSave('${id}')">Save schedule</button>${t.publishAt>0?`<button class="sec" onclick="schedClear('${id}')">Remove schedule</button>`:''}<button class="sec" onclick="home()">Cancel</button></div>`);
+  h(`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">Schedule publish</h1><p class="mut">${esc(t.title)}</p><div class="card"><label class="mut">Publish on (date and time)</label><input type="datetime-local" id="sdt" value="${lt(at)}"><label class="mut">Students can start the test for</label><select id="shr">${[1,2,3].map(n=>`<option value="${n}" ${n===hrs?'selected':''}>${n} hour${n>1?'s':''}</option>`).join('')}</select><p class="mut" style="margin:8px 0 0">Students can see the test before the chosen time, but it stays locked. A countdown appears in the last minute, and the test opens at the chosen time. The deadline is set automatically to the chosen window after that. Students must start within the window; the normal test timer still applies.</p></div><div class="row"><button onclick="schedSave('${id}')">Save schedule</button>${t.publishAt>0?`<button class="sec" onclick="schedClear('${id}')">Remove schedule</button>`:''}<button class="sec" onclick="home()">Cancel</button></div>`);
 }
 async function schedSave(id){
   const v=document.getElementById('sdt').value,hr=+document.getElementById('shr').value||2,ms=v?new Date(v).getTime():0;
@@ -314,6 +329,8 @@ async function asgSave(){
   catch(e){alert('Could not save: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
 }
 function stuTC(t){
+  if(locked(t)){const left=t.publishAt-Date.now(),soon=left<=60000;
+    return `<div class="card cdw" data-id="${t.id}"><div class="row sp"><div><h2>${esc(t.title)}<span class="bdg n">🔒 Upcoming</span></h2><div class="mut">${t.questions.length} questions · ${durMin(t)} min</div>${soon?`<div style="margin-top:8px;font-size:15px">Starts in</div><div class="big cd" data-at="${t.publishAt}" style="color:var(--ac)">${cdTxt(left)}</div>`:`<div style="margin-top:6px">🕒 Opens on ${new Date(t.publishAt).toLocaleString()}</div><div class="mut">A countdown will appear 1 minute before the start.</div>`}</div><div class="row"><button disabled style="opacity:.5">Start</button></div></div></div>`}
   const done=mine[t.id],a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id),info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline&&!isAsg(t)?' · until '+new Date(t.deadline).toLocaleString():''}`;
     const pcx=done&&done.total?Math.max(0,Math.round(done.score/done.total*100)):0,bd=rt?'<span class="bdg pz">🔁 Retake</span>':done?`<span class="bdg ${pcx>=60?'ok':pcx>=35?'md':'lo'}">Score ${pcx}%</span>`:a?'<span class="bdg md">⏸ In progress</span>':over(t)?'':'<span class="bdg n">🆕 New</span>';
     return `<div class="card"><div class="row sp"><div><h2>${esc(t.title)}${bd}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
@@ -351,7 +368,7 @@ function home(){normMine();
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:14px" onclick="stab='${k}';home()">${l}</button>`;
   let o=hd+banner();
   if(isTeacher)o+=`<div class="tabg" style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?3:2},1fr);gap:8px;margin:4px 0 10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations'):''}${tb('stu','Students')}</div><div class="row sp" style="flex-wrap:nowrap;margin:6px 0 8px"><h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><button class="sec" onclick="sec=null;home()">← All sections</button></div>`;
-  else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b><b style="white-space:nowrap">Class: ${esc(myClass)}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" style="width:100%" onclick="progress()">📊 My progress</button></div>`}
+  else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" style="width:100%" onclick="progress()">📊 My progress</button></div>`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   o+=subTabs();
@@ -875,6 +892,7 @@ function shrinkData(src,max){return new Promise((res,rej)=>{const im=new Image()
 async function importDocx(inp){
   const f=inp.files[0],st=document.getElementById('impst');if(!f)return;
   if(!/\.docx$/i.test(f.name)){st.textContent='Please choose a .docx file. In Word: File → Save as → Word Document (.docx).';return}
+  if(typeof mammoth==='undefined'){st.textContent='Loading the Word reader…';await wordLibs()}
   if(typeof mammoth==='undefined'){st.textContent='The Word reader could not load. Check your internet and reload the app.';return}
   st.textContent='Reading your file…';
   try{
@@ -1012,12 +1030,12 @@ const brk=(t,rec)=>{if(!rec.mk)return '';const an=rec.answers||[];let c=0,w=0,s=
 const clk=ms=>{const s=Math.max(0,Math.ceil(ms/1000)),hr=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (hr?hr+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')};
 const durMin=t=>t.mins||Math.max(1,Math.round((t.secs||30)*t.questions.length/60));
 function start(id){
-  const t=tests.find(x=>x.id===id);if(!t)return;if(mine[id]&&!canRetake(id))return home();
+  const t=tests.find(x=>x.id===id);if(!t)return;if(locked(t))return toast('This test has not started yet');if(mine[id]&&!canRetake(id))return home();
   const a=att[id];if(over(t)&&!a&&!canRetake(id))return timeOver();
   h(`<h1>${esc(t.title)}${mineAll[id]?' – Attempt '+(mineAll[id].length+1):''}</h1><div class="card"><p>${t.questions.length} questions · <b>${durMin(t)} minutes</b> in total.</p><ul style="padding-left:18px;line-height:1.7">${hasNeg(t)?'<li><b>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted questions.</b> Total marks: '+4*t.questions.length+'.</li>':''}<li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
 }
 function begin(id){
-  const t=tests.find(x=>x.id===id);if(!t)return;
+  const t=tests.find(x=>x.id===id);if(!t)return;if(locked(t))return home();
   const a=att[id],n=t.questions.length;if(mine[id]&&!canRetake(id))return home();if(over(t)&&!a&&!canRetake(id))return timeOver();
   cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:durMin(t)*60000,last:Date.now(),saved:0};
   document.addEventListener('visibilitychange',onVis);window.addEventListener('pagehide',onHide);
