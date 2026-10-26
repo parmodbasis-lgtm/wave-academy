@@ -84,7 +84,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}});document.querySelectorAll('.tgl').forEach(e=>{let f=14;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth+1&&f>7){f-=.5;e.style.fontSize=f+'px'}})};
 let rootNext=null,pushed=false,ignorePop=false,viewKind='root';
 const toast=m=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:999;max-width:85%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5)';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none'},2200)};
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-I</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-J</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -148,8 +148,8 @@ function init(){
       if(!isTeacher){try{(await db.collection('retakes').where('uid','==',uid).get()).docs.forEach(d=>{const x=d.data();allowed[x.testId]=x.allowed||1})}catch(e){}}
       if(!isTeacher)sec=mySec;
       const col=db.collection('tests'),upd=()=>{const mp=new Map();[].concat(...Object.values(parts)).forEach(x=>mp.set(x.id,x));rawTests=[...mp.values()].sort((a,b)=>b.created-a.created);applyVis();const sig=rawTests.map(t=>[t.id,t.published,t.publishAt,t.deadline,(t.assigned||[]).join(),t.title,t.section,t.subject,(t.questions||[]).length].join('~')).join('|');if(loaded&&sig===lastSig)return;lastSig=sig;const go=()=>{if(!timer&&!draft){const y=window.scrollY;if(!openHash())home();window.scrollTo(0,y)}};if(loaded&&!isTeacher&&!timer)refreshMine().then(go);else go()},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
-      if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail);unsub=us}
-      else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));mySecs().forEach(sc=>us.push(col.where('section','==',sc).where('publishAt','>',0).onSnapshot(s=>{parts['sch'+sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{})));us.push(col.where('assigned','array-contains',uid).onSnapshot(s=>{parts.asg=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));unsub=()=>us.forEach(f=>f&&f())}
+      if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));parts.all.filter(t=>t.publishAt>0&&t.sched!==true).forEach(t=>{try{col.doc(t.id).update({sched:true}).catch(()=>{})}catch(e){}});upd()},fail);unsub=us}
+      else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));mySecs().forEach(sc=>us.push(col.where('section','==',sc).where('sched','==',true).onSnapshot(s=>{parts['sch'+sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{})));us.push(col.where('assigned','array-contains',uid).onSnapshot(s=>{parts.asg=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));unsub=()=>us.forEach(f=>f&&f())}
       loaded=true;if(!openHash())home();
     }catch(e){h('<div class="card">Something went wrong: '+esc(e.message||e)+'</div><button class="sec" onclick="logout()">Logout</button>')}
   });
@@ -283,12 +283,12 @@ function schedOpen(id){
 async function schedSave(id){
   const v=document.getElementById('sdt').value,hr=+document.getElementById('shr').value||2,ms=v?new Date(v).getTime():0;
   if(!ms||ms<=Date.now())return alert('Please choose a time in the future.');
-  try{await db.collection('tests').doc(id).update({published:false,publishAt:ms,deadline:ms+hr*36e5,schedHrs:hr});alert('Scheduled for '+new Date(ms).toLocaleString()+'. Deadline: '+new Date(ms+hr*36e5).toLocaleString());home()}
+  try{await db.collection('tests').doc(id).update({published:false,sched:true,publishAt:ms,deadline:ms+hr*36e5,schedHrs:hr});alert('Scheduled for '+new Date(ms).toLocaleString()+'. Deadline: '+new Date(ms+hr*36e5).toLocaleString());home()}
   catch(e){alert('Could not save: '+(e.message||e)+'. Make sure you published the latest Firebase rules.')}
 }
 async function schedClear(id){
   if(!confirm('Remove the schedule? The test will stay as a draft.'))return;
-  try{await db.collection('tests').doc(id).update({publishAt:0,published:false});home()}catch(e){alert('Could not change: '+(e.message||e))}
+  try{await db.collection('tests').doc(id).update({publishAt:0,sched:false,published:false});home()}catch(e){alert('Could not change: '+(e.message||e))}
 }
 let asgT=null,asgRows=[],asgSel=new Set(),asgOrig=[];
 async function assignOpen(id){
@@ -1285,7 +1285,7 @@ async function togglePub(id,v){
       if(!confirm(n?'Unpublish this test?\n\n'+n+' student(s) have taken it. Their results for this test will be PERMANENTLY DELETED (also from their progress). This cannot be undone.':'Unpublish this test?'))return;
       if(n)await wipeResults(id,keep,null);
     }
-    await db.collection('tests').doc(id).update({published:v,publishAt:0});
+    await db.collection('tests').doc(id).update({published:v,publishAt:0,sched:false});
   }catch(e){alert('Could not change: '+(e.message||e))}
 }
 function progress(){normMine();
