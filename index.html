@@ -64,6 +64,10 @@ button:disabled{opacity:.5}
 @media print{body::before{display:none!important}html,body{background:#fff!important}body>*:not(#pp){display:none!important}#pp{display:block!important;color:#000;background:#fff;font:14px/1.5 Georgia,serif;padding:0}#pp .pq{break-inside:avoid;margin:0 0 14px}#pp .pop{margin:2px 0 2px 18px}#pp img{max-width:100%;max-height:220px}#pp .oimg{max-height:90px}#pp h1{font-size:20px;text-align:center;margin:0}#pp .pc{text-align:center;margin:2px 0}#pp hr{border:0;border-top:1.5px solid #000;margin:8px 0 14px}#pp .pk{break-before:page}#pp table{border-collapse:collapse}#pp td,#pp th{border:1px solid #000;padding:3px 10px}}
 .pwb{position:relative}.pwb input{padding-right:44px}.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:20px;opacity:.5;user-select:none;padding:4px}
 body.nocp,body.nocp *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}body.nocp input,body.nocp textarea{-webkit-user-select:text;user-select:text}
+@keyframes lgspin{to{transform:rotate(360deg)}}@keyframes lgdots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}@keyframes lgpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.lgo{position:fixed;inset:0;background:rgba(110,40,0,.85);z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;text-align:center;padding:20px}
+.lgr{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center}.lgr:before{content:'';position:absolute;inset:0;border-radius:50%;border:5px solid rgba(255,255,255,.22);border-top-color:#ffd84a;border-right-color:#ffd84a;animation:lgspin 1s linear infinite}.lgr img{width:104px;height:104px;border-radius:50%;animation:lgpulse 1.4s ease-in-out infinite}
+.lgt:after{content:'';animation:lgdots 1.4s steps(1,end) infinite}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -95,7 +99,7 @@ function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-E</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-F</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -199,23 +203,27 @@ async function fpSend(){
   catch(x){const k=x.code||'';b.disabled=false;say(k.includes('too-many')?'Too many requests. Please wait a few minutes and try again.':k.includes('network')?'No internet connection.':'Could not send the reset email. Please check the email ID and try again.')}
 }
 const authErr=c=>c.includes('email-already')?'This email is already registered. Please sign in.':(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found'))?'Wrong email or password.':c.includes('too-many')?'Too many attempts. Please try again later.':c.includes('network')?'No internet connection.':'Something went wrong. Please try again.';
+let lgTm=null;
+function showLg(m){hideLg();const d=document.createElement('div');d.id='lgo';d.className='lgo';d.innerHTML='<div class="lgr"><img src="'+LOGO+'" alt=""></div><div class="lgt" style="margin-top:22px">'+m+'</div>';document.body.appendChild(d);lgTm=setTimeout(hideLg,25000)}
+function hideLg(){clearTimeout(lgTm);const d=document.getElementById('lgo');if(d)d.remove()}
 async function doAuth(){
   const up=mode==='up',g=id=>document.getElementById(id),e=g('le').value.trim().toLowerCase(),p=g('lp').value,err=s=>{g('lerr').textContent=s};
   if(!e)return err('Please enter your email ID.');
   if(!/^\S+@\S+\.\S+$/.test(e))return err('Please enter a valid email ID.');
   if(!p&&!up)return err('Please fill in your password.');
   try{
-    if(!up)return void await auth.signInWithEmailAndPassword(e,p);
+    if(!up){showLg('Signing you in');return void await auth.signInWithEmailAndPassword(e,p)}
     const n=g('ln').value.trim(),c=g('lc').value;
     if(!n)return err('Please enter your full name.');
     if(n.length<2||/@/.test(n)||!/\p{L}/u.test(n))return err('Please enter your real name (not an email or number).');
     if(!c)return err('Please select your class.');
     if(!p)return err('Please fill in your password.');
     if(!/^[A-Za-z0-9]{6,}$/.test(p)||!/[A-Za-z]/.test(p)||!/\d/.test(p))return err('Password: at least 6 characters, letters and numbers only, with at least one letter and one number.');
+    showLg('Creating your account');
     const cr=await auth.createUserWithEmailAndPassword(e,p);
     await db.collection('users').doc(cr.user.uid).set({name:n,cls:c,sec:CLS[c],email:e,created:Date.now()});
     await cr.user.sendEmailVerification();
-  }catch(x){err(authErr(x.code||''))}
+  }catch(x){hideLg();err(authErr(x.code||''))}
 }
 const PWRULE='Password: at least 6 characters, letters and numbers only, with at least one letter and one number.';
 const pwOk=p=>/^[A-Za-z0-9]{6,}$/.test(p)&&/[A-Za-z]/.test(p)&&/\d/.test(p);
