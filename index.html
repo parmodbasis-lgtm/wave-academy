@@ -84,7 +84,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}});document.querySelectorAll('.tgl').forEach(e=>{let f=14;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth+1&&f>7){f-=.5;e.style.fontSize=f+'px'}})};
 let rootNext=null,pushed=false,ignorePop=false,viewKind='root';
 const toast=m=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:999;max-width:85%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5)';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none'},2200)};
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-L</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-M</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1075,7 +1075,7 @@ function drawTest(){
   let o=`<div class="timer" id="tm"></div><div class="row sp" style="margin:8px 0"><b>${esc(t.title)}</b><span class="mut" id="cnt">${ans.filter(a=>a>=0).length}/${n} answered</span></div><div class="nvbar">${nav}</div><div class="mut" style="margin:8px 0 4px;font-size:13px">Filled = answered · Tap any number to jump to that question</div><div class="mut" style="margin:6px 0 4px">Question ${i+1} of ${n}</div><div class="card"><b>${fmt(q.q)}</b>${imgQ(q)}`;
   q.options.forEach((op,j)=>o+=`<div class="opt ${ans[i]===j?'sel':''}" id="op${j}" onclick="pick(${j})">${optHtml(q,j)}</div>`);
   o+=`<button class="del" id="clr" style="${ans[i]>=0?'':'display:none'}" onclick="pick(-1)">Clear my answer</button></div>`;
-  o+=`<div class="row" style="margin-top:6px"><button class="sec" onclick="goQ(${i-1})" ${i===0?'disabled':''}>← Previous</button>${last?`<button id="nx" onclick="askSubmit()">Finish &amp; submit</button>`:`<button id="nx" onclick="goQ(${i+1})">Next →</button><button class="sec" style="margin-left:auto" onclick="askSubmit()">Finish &amp; submit</button>`}</div>`;
+  o+=`<div class="row" style="margin-top:6px"><button class="sec" onclick="goQ(${i-1})" ${i===0?'disabled':''}>← Previous</button>${last?`<button id="nx" onclick="askSubmit()">Finish &amp; submit</button>`:`<button id="nx" onclick="goQ(${i+1})">Next →</button>`}</div>`;
   h(o);tick();
 }
 function goQ(k){if(!cur||k<0||k>=cur.t.questions.length)return;cur.i=k;cur.screen='q';drawTest();saveAttempt()}
@@ -1322,7 +1322,17 @@ function showReview(id,from,k){normMine();
   t.questions.forEach((q,i)=>{o+=`<div class="card">${qTag(q,ans[i],times,i)}<b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
   h(o+`<button onclick="${from==='p'?'progress()':'home()'}">Back</button>`);
 }
-try{if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
+let hiddenAt=0,swReg=null,hadSW=false;
+try{if('serviceWorker' in navigator&&location.protocol.startsWith('http')){hadSW=!!navigator.serviceWorker.controller;navigator.serviceWorker.register('sw.js').then(r=>{swReg=r}).catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW&&!timer&&!draft)location.reload()})}}catch(e){}
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='hidden'){hiddenAt=Date.now();return}
+  if(!uid||!hiddenAt||Date.now()-hiddenAt<15000)return;
+  hiddenAt=0;try{swReg&&swReg.update()}catch(e){}
+  if(timer||draft||(viewKind!=='root'&&viewKind!=='sec'))return;
+  try{await refreshMine()}catch(e){}
+  if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
+});
 init();
 </script>
 </body>
