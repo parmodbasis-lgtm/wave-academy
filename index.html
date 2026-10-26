@@ -84,7 +84,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>16){f-=1;e.style.fontSize=f+'px'}});document.querySelectorAll('.tgl').forEach(e=>{let f=14;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth+1&&f>7){f-=.5;e.style.fontSize=f+'px'}})};
 let rootNext=null,pushed=false,ignorePop=false,viewKind='root';
 const toast=m=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:999;max-width:85%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5)';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none'},2200)};
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-J</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 26-Oct-K</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -249,7 +249,7 @@ function copyLink(){
 }
 const isAsg=t=>!isTeacher&&!!uid&&Array.isArray(t.assigned)&&t.assigned.includes(uid);
 const pubNow=t=>t.published===true||(t.publishAt>0&&Date.now()>=t.publishAt);
-const locked=t=>!isTeacher&&t.published!==true&&t.publishAt>Date.now();
+const locked=t=>!isTeacher&&t.published!==true&&t.publishAt>Date.now()&&!isAsg(t);
 const cdTxt=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 let lockKey=null;
 async function lockTick(){
@@ -261,7 +261,15 @@ async function lockTick(){
   if(lockKey===null){lockKey=key;return}
   if(key!==lockKey){lockKey=key;applyVis();await refreshMine();const y=window.scrollY;home();window.scrollTo(0,y)}
 }
-setInterval(lockTick,1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lockTick()});
+let tKey=null;
+function teacherTick(){
+  if(!isTeacher||!uid||draft||timer)return;
+  if(viewKind!=='root'&&viewKind!=='sec')return;
+  const now=Date.now(),key=tests.filter(t=>t.publishAt>0&&t.published!==true).map(t=>t.id+':'+(t.publishAt<=now?1:0)).join();
+  if(tKey===null){tKey=key;return}
+  if(key!==tKey){tKey=key;const y=window.scrollY;home();window.scrollTo(0,y)}
+}
+setInterval(()=>{lockTick();teacherTick()},1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lockTick();teacherTick()}});
 const excl=t=>isAsg(t)&&!(pubNow(t)&&mySecs().includes(t.section));
 const over=t=>t.deadline&&Date.now()>t.deadline&&!isAsg(t);
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
@@ -269,6 +277,7 @@ const lob=()=>`<div style="margin-top:26px;text-align:right"><button class="bg" 
 const subTabs=()=>isSub(sec)?`<div class="tabg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">${[['Science','🔬 Science'],['Maths','➕ Maths']].map(a=>`<button class="gold ${subj===a[0]?'on':''}" style="padding:12px 2px" onclick="subj='${a[0]}';home()">${a[1]}</button>`).join('')}</div>`:'';
 let rawTests=[],schedT=null,lastSig='';
 function applyVis(){
+  if(!isTeacher)rawTests.forEach(t=>{const a=att[t.id];if(t.ver&&a&&(a.updated||0)<t.ver&&!isAsg(t)&&!(mine[t.id]&&canRetake(t.id))){delete att[t.id];try{db.collection('users/'+uid+'/attempts').doc(t.id).delete().catch(()=>{})}catch(e){}}});
   tests=isTeacher?rawTests:rawTests.filter(t=>pubNow(t)||isAsg(t)||(t.publishAt>0&&mySecs().includes(t.section)));
   clearTimeout(schedT);
   if(!isTeacher){const fut=rawTests.filter(t=>t.publishAt>0&&t.publishAt>Date.now()).map(t=>t.publishAt);
@@ -380,7 +389,7 @@ function home(){normMine();
     const info=`${t.questions.length} questions · ${durMin(t)} min${t.deadline?' · until '+new Date(t.deadline).toLocaleString():''}`;
     if(isTeacher){
       o+=`<div class="card" style="cursor:pointer" onclick="results('${t.id}')"><div class="row sp"><div><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div><div style="margin-top:4px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+new Date(t.publishAt).toLocaleString()+'</span><div class="mut">Deadline: '+(t.deadline?new Date(t.deadline).toLocaleString():'none')+'</div>':'<span style="color:var(--bad)">● Draft – students cannot see it</span>'}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div></div><span class="mut">Students ›</span></div>
-      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">👤 Assign to students${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
+      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="share('${t.id}')">Share</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="paperPdf('${t.id}',false)">📄 PDF</button><button class="bl" onclick="paperPdf('${t.id}',true)">📄 PDF + Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button><button class="bl" style="grid-column:1/-1" onclick="confirmDel('${t.id}')">Delete</button></div></div>`;
       return;
     }
     o+=stuTC(t);
@@ -1285,7 +1294,8 @@ async function togglePub(id,v){
       if(!confirm(n?'Unpublish this test?\n\n'+n+' student(s) have taken it. Their results for this test will be PERMANENTLY DELETED (also from their progress). This cannot be undone.':'Unpublish this test?'))return;
       if(n)await wipeResults(id,keep,null);
     }
-    await db.collection('tests').doc(id).update({published:v,publishAt:0,sched:false});
+    const tt=tests.find(x=>x.id===id),up={published:v,publishAt:0,sched:false,ver:Date.now()};if(v&&tt&&tt.publishAt>0)up.deadline=0;
+    await db.collection('tests').doc(id).update(up);
   }catch(e){alert('Could not change: '+(e.message||e))}
 }
 function progress(){normMine();
