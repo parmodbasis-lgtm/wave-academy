@@ -100,7 +100,7 @@ function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-I</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-J</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -595,31 +595,49 @@ async function fmPdf(file,add){
   }
 }
 const fmSt=m=>{const e=document.getElementById('fms');if(e)e.textContent=m};
-function fmThumbs(){const e=document.getElementById('fmt');if(e)e.innerHTML=fm.pgs.map((g,i)=>`<div style="position:relative"><img src="${g}" style="width:100%;border-radius:8px;display:block;background:#fff"><span style="position:absolute;left:4px;bottom:4px;background:#000a;color:#fff;font-size:11px;padding:1px 6px;border-radius:6px">${i+1}</span></div>`).join('')}
+function fmThumbs(){
+  const e=document.getElementById('fmt');if(!e)return;
+  const bs='padding:4px 0;min-width:0;font-size:13px';
+  e.innerHTML=fm.pgs.map((g,i)=>`<div style="background:#fff8;border-radius:10px;padding:6px"><div style="position:relative"><img src="${g.img}" style="width:100%;border-radius:8px;display:block;background:#fff"><span style="position:absolute;left:4px;bottom:4px;background:#000a;color:#fff;font-size:11px;padding:1px 6px;border-radius:6px">Page ${i+1}${g.src===null?' · new':''}</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px"><button class="sec" style="${bs}" onclick="fmRep(${i})">Replace</button><button class="del" style="${bs}" onclick="fmRm(${i})">Remove</button><button class="sec" style="${bs}" ${i===0?'disabled':''} onclick="fmMv(${i},-1)">‹ Move</button><button class="sec" style="${bs}" ${i===fm.pgs.length-1?'disabled':''} onclick="fmMv(${i},1)">Move ›</button></div></div>`).join('');
+}
+function fmRep(i){fm.rep=i;const x=document.getElementById('frep');if(x)x.click()}
+async function fmRepDo(inp){
+  const f=inp.files[0];inp.value='';if(!f||fm.rep==null||fm.busy)return;
+  fm.busy=true;fmSt('Converting…');
+  try{fm.pgs[fm.rep]={img:await fmImg(f),src:null};fmThumbs();fmSt('Page '+(fm.rep+1)+' replaced. Tap Save changes to keep it.')}
+  catch(e){fmSt('Could not convert: '+(e.message||e))}
+  fm.busy=false;
+}
+function fmRm(i){if(fm.pgs.length<2)return fmSt('A topic needs at least one page.');fm.pgs.splice(i,1);fmThumbs();fmSt(fm.pgs.length+' pages. Tap Save changes to keep this.')}
+function fmMv(i,d){const j=i+d;if(j<0||j>=fm.pgs.length)return;[fm.pgs[i],fm.pgs[j]]=[fm.pgs[j],fm.pgs[i]];fmThumbs()}
 async function fmPick(inp){
   const fs=[...inp.files];inp.value='';if(!fs.length||fm.busy)return;
-  fm.busy=true;fm.pgs=[];fmThumbs();fmSt('Converting…');
+  fm.busy=true;fmSt('Converting…');
   try{
     for(const f of fs){
-      if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name))await fmPdf(f,g=>{fm.pgs.push(g);fmThumbs()});
-      else{if(fm.pgs.length>=FMMAX)throw new Error('Maximum '+FMMAX+' pages per topic.');fm.pgs.push(await fmImg(f));fmThumbs()}
+      if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name))await fmPdf(f,g=>{fm.pgs.push({img:g,src:null});fmThumbs()});
+      else{if(fm.pgs.length>=FMMAX)throw new Error('Maximum '+FMMAX+' pages per topic.');fm.pgs.push({img:await fmImg(f),src:null});fmThumbs()}
     }
     fmSt(fm.pgs.length+' page'+(fm.pgs.length==1?'':'s')+' ready.');
-  }catch(e){fm.pgs=[];fmThumbs();fmSt('Could not convert: '+(e.message||e))}
+  }catch(e){fmThumbs();fmSt('Could not convert: '+(e.message||e))}
   fm.busy=false;
 }
 function fmKeep(){fm.pre={title:document.getElementById('ft').value,free:document.getElementById('ff').checked}}
 async function fmAdminIn(o){
   fm.o=o;h(o+'<p class="mut">Loading…</p>');
   try{await fmLoad(true)}catch(e){return h(o+lecErr(e))}
-  fm.pgs=[];
   const ls=fm.list,ed=fm.edit?ls.find(l=>l.id===fm.edit):null,p=fm.pre||{title:ed?ed.title:'',free:ed?!!ed.free:false};
-  let s=`<div class="card"><h2 style="margin-top:0">${ed?'Edit topic':'Add topic – Formulae'}</h2><input type="text" id="ft" value="${esc(p.title)}" placeholder="Topic name" oninput="fmKeep()"><p class="mut" style="margin:8px 0 4px">${ed?'Current pages: '+(ed.pages||0)+'. Choose new files only if you want to replace them.':'Upload the formulae as a PDF or as images.'}</p><div class="row"><button class="sec" onclick="document.getElementById('fpdf').click()">📄 Choose PDF</button><button class="sec" onclick="document.getElementById('fimg').click()">🖼️ Choose images</button></div><input type="file" id="fpdf" accept="application/pdf" style="display:none" onchange="fmPick(this)"><input type="file" id="fimg" accept="image/*" multiple style="display:none" onchange="fmPick(this)"><p id="fms" class="mut" style="margin:8px 0"></p><div id="fmt" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px"></div><label style="display:flex;gap:10px;align-items:center;margin:8px 0"><input type="checkbox" id="ff" ${p.free?'checked':''} onchange="fmKeep()" style="width:22px;height:22px;margin:0"> Free for all students</label><p id="fme" style="color:var(--bad);margin:6px 0"></p><div class="row"><button onclick="fmSave()" id="fsb">${ed?'Save changes':'Save topic'}</button>${ed?'<button class="sec" onclick="fm.edit=null;fm.pre=null;fmAdminIn(fm.o)">Cancel</button>':''}</div><p class="mut" style="margin:8px 0 0">New topics are Premium unless you tick Free. Up to ${FMMAX} pages per topic.</p></div>`;
+  fm.pgs=[];
+  if(ed){
+    try{const r=await Promise.all(Array.from({length:ed.pages||0},(_,k)=>db.collection('formulaSrc').doc(ed.id+'_'+k).get()));r.forEach((d,k)=>{if(d.exists)fm.pgs.push({img:d.data().img,src:k})})}
+    catch(e){return h(o+lecErr(e))}
+  }
+  let s=`<div class="card"><h2 style="margin-top:0">${ed?'Edit topic':'Add topic – Formulae'}</h2><input type="text" id="ft" value="${esc(p.title)}" placeholder="Topic name" oninput="fmKeep()"><p class="mut" style="margin:8px 0 4px">${ed?'Change the name, or Replace / Remove / Move any page below. You can also add more pages.':'Upload the formulae as a PDF or as images.'}</p><div class="row"><button class="sec" onclick="document.getElementById('fpdf').click()">📄 ${ed?'Add PDF':'Choose PDF'}</button><button class="sec" onclick="document.getElementById('fimg').click()">🖼️ ${ed?'Add images':'Choose images'}</button></div><input type="file" id="fpdf" accept="application/pdf" style="display:none" onchange="fmPick(this)"><input type="file" id="fimg" accept="image/*" multiple style="display:none" onchange="fmPick(this)"><input type="file" id="frep" accept="image/*" style="display:none" onchange="fmRepDo(this)"><p id="fms" class="mut" style="margin:8px 0"></p><div id="fmt" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px"></div><label style="display:flex;gap:10px;align-items:center;margin:8px 0"><input type="checkbox" id="ff" ${p.free?'checked':''} onchange="fmKeep()" style="width:22px;height:22px;margin:0"> Free for all students</label><p id="fme" style="color:var(--bad);margin:6px 0"></p><div class="row"><button onclick="fmSave()" id="fsb">${ed?'Save changes':'Save topic'}</button>${ed?'<button class="sec" onclick="fm.edit=null;fm.pre=null;fmAdminIn(fm.o)">Cancel</button>':''}</div><p class="mut" style="margin:8px 0 0">New topics are Premium unless you tick Free. Up to ${FMMAX} pages per topic.</p></div>`;
   ls.forEach((l,i)=>{
     s+=`<div class="card"><b>${i+1}. ${esc(l.title)}</b><div class="mut" style="margin:4px 0">${l.pages||0} page${l.pages==1?'':'s'} · ${l.free?'🆓 Free':'⭐ Premium'} · ${l.published?'Published':'Hidden (draft)'}</div><div class="row"><button class="sec" onclick="fmMove('${l.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="sec" onclick="fmMove('${l.id}',1)" ${i===ls.length-1?'disabled':''}>↓</button><button class="sec" onclick="fmEdit('${l.id}')">Edit</button><button class="sec" onclick="fmSet('${l.id}',{free:${!l.free}})">${l.free?'Make Premium':'Make Free'}</button><button onclick="fmSet('${l.id}',{published:${!l.published}})">${l.published?'Unpublish':'Publish'}</button><button class="del" onclick="fmDel('${l.id}')">Delete</button></div></div>`;
   });
   if(!ls.length)s+='<div class="card mut">No formulae topics yet. Add your first topic above.</div>';
-  h(o+s);
+  h(o+s);fmThumbs();
 }
 function fmEdit(id){fm.edit=id;fm.pre=null;fmAdminIn(fm.o)}
 async function fmSave(){
@@ -627,15 +645,12 @@ async function fmSave(){
   const err=m=>{document.getElementById('fme').textContent=m},title=document.getElementById('ft').value.trim(),free=document.getElementById('ff').checked;
   const ed=fm.edit?fm.list.find(l=>l.id===fm.edit):null;
   if(!title)return err('Please enter the topic name.');
-  if(!ed&&!fm.pgs.length)return err('Please choose a PDF or images first.');
+  if(!fm.pgs.length)return err('Please choose a PDF or images first.');
   fm.busy=true;const b=document.getElementById('fsb');b.disabled=true;err('');
   try{
-    const fid=ed?ed.id:nid(),old=ed?(ed.pages||0):0;let n=old;
-    if(fm.pgs.length){
-      n=fm.pgs.length;
-      for(let k=0;k<n;k++){fmSt('Saving page '+(k+1)+' of '+n+'…');await db.collection('formulaSrc').doc(fid+'_'+k).set({fid,section:sec,k,img:fm.pgs[k]})}
-      for(let k=n;k<old;k++)await db.collection('formulaSrc').doc(fid+'_'+k).delete();
-    }
+    const fid=ed?ed.id:nid(),old=ed?(ed.pages||0):0,n=fm.pgs.length;
+    for(let k=0;k<n;k++){const it=fm.pgs[k];if(it.src===k)continue;fmSt('Saving page '+(k+1)+' of '+n+'…');await db.collection('formulaSrc').doc(fid+'_'+k).set({fid,section:sec,k,img:it.img})}
+    for(let k=n;k<old;k++)await db.collection('formulaSrc').doc(fid+'_'+k).delete();
     if(ed)await db.collection('formulae').doc(fid).update({title,free,pages:n});
     else await db.collection('formulae').doc(fid).set({section:sec,title,order:Math.max(0,...fm.list.map(l=>l.order||0))+1,free,published:true,pages:n,created:Date.now()});
     fm.cache={};fm.edit=null;fm.pre=null;fm.busy=false;fmAdminIn(fm.o);
