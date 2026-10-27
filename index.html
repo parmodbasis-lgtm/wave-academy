@@ -101,7 +101,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-O</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-P</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1470,7 +1470,7 @@ function paperPdf(id,key){
 async function resultCanvas(o){
   // o: {title, cls, date, qn, maxm, rows:[{name,score,total}], logo}
   const W=1080,pad=48,rh=92,rows=o.rows;
-  const head=520,foot=130,H=head+rows.length*(rh+14)+foot+30;
+  const ab=o.absent||[],head=520,foot=130,H=head+(rows.length+ab.length)*(rh+14)+foot+30;
   const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#c25400');g.addColorStop(.5,'#8f3a00');g.addColorStop(1,'#5e2400');x.fillStyle=g;x.fillRect(0,0,W,H);
   // soft decor circles
@@ -1497,12 +1497,12 @@ async function resultCanvas(o){
   let rank=0,prev=null,y=head;
   const bands=[['#ffd54a','#c98a00'],['#d9dee6','#8a93a3'],['#e0a070','#9a5a25']];
   rows.forEach((r,i)=>{
-    if(r.score!==prev){rank=i+1;prev=r.score}
-    const pct=r.total?r.score/r.total*100:0,stars=pct>=90?3:pct>=75?2:pct>=50?1:0,tp=rank<=3;
+    rank=i+1;const isTop=r.score===rows[0].score;
+    const pct=r.total?r.score/r.total*100:0,stars=pct>=90?3:pct>=75?2:pct>=50?1:0,tp=isTop;
     rr(pad,y,W-2*pad,rh,24);x.fillStyle=tp?'rgba(255,248,225,.97)':'rgba(255,255,255,.92)';x.fill();
-    if(rank===1){x.lineWidth=5;x.strokeStyle='#ffd54a';x.stroke()}
+    if(isTop){x.lineWidth=5;x.strokeStyle='#ffd54a';x.stroke()}
     // rank badge
-    const bc=tp?bands[rank-1]:['#6f86c8','#3d55a0'];
+    const bc=tp?bands[0]:['#6f86c8','#3d55a0'];
     x.beginPath();x.arc(pad+52,y+rh/2,32,0,7);x.fillStyle=bc[0];x.fill();x.lineWidth=4;x.strokeStyle=bc[1];x.stroke();
     x.fillStyle=tp?'#4a3000':'#fff';x.font='bold 32px Georgia,serif';x.textAlign='center';x.fillText(String(rank),pad+52,y+rh/2+11);x.textAlign='left';
     // name
@@ -1515,6 +1515,14 @@ async function resultCanvas(o){
     // score
     x.textAlign='right';x.fillStyle='#b34700';x.font='bold 38px Georgia,serif';x.fillText(r.score+'/'+r.total,W-pad-26,y+rh/2-2);
     x.fillStyle='#666';x.font='22px Arial,sans-serif';x.fillText(Math.round(pct)+'%',W-pad-26,y+rh/2+28);x.textAlign='left';
+    y+=rh+14;
+  });
+  ab.forEach(n=>{
+    rr(pad,y,W-2*pad,rh,24);x.fillStyle='rgba(235,230,224,.85)';x.fill();
+    x.beginPath();x.arc(pad+52,y+rh/2,32,0,7);x.fillStyle='#9a9a9a';x.fill();x.lineWidth=4;x.strokeStyle='#777';x.stroke();
+    x.fillStyle='#fff';x.font='bold 32px Georgia,serif';x.textAlign='center';x.fillText('–',pad+52,y+rh/2+11);x.textAlign='left';
+    x.fillStyle='#555';x.font='bold 32px Georgia,serif';x.fillText(fit(n,520,x.font),pad+104,y+rh/2+11);
+    x.textAlign='right';x.fillStyle='#b23b3b';x.font='bold 28px Arial,sans-serif';x.fillText('Not Attempted',W-pad-26,y+rh/2+10);x.textAlign='left';
     y+=rh+14;
   });
   // legend + footer
@@ -1531,11 +1539,12 @@ async function shareResult(){
     const rows=rcache.rows.filter(x=>x.res).map(x=>({name:x.name||'Student',score:x.res.score,total:x.res.total}));
     rows.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
     if(!rows.length){alert('No student has attempted this test yet.');return}
+    const absent=rcache.rows.filter(x=>!x.res).map(x=>x.name||'Student').sort((a,b)=>a.localeCompare(b));
     const im=new Image();im.src=WLOGO;await im.decode();
     const d=new Date(startOf(t)||Date.now()),ds=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
     const cls=(t.section||'')+(isSub(t.section)?' · '+(t.subject||'Science'):'');
     const mx=rows.reduce((m,r)=>Math.max(m,r.total),0);
-    const c=await resultCanvas({title:t.title||'Test',cls,date:ds,maxm:mx,rows,logo:im});
+    const c=await resultCanvas({title:t.title||'Test',cls,date:ds,maxm:mx,rows,absent,logo:im});
     const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',.92));
     const nm=(t.title||'result').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'_').slice(0,40)||'result';
     const f=new File([blob],'Result_'+nm+'.jpg',{type:'image/jpeg'});
