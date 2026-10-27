@@ -101,7 +101,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-N</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-O</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1464,13 +1464,93 @@ function paperPdf(id,key){
   window.addEventListener('afterprint',done);
   setTimeout(()=>window.print(),300);
 }
+
+/* ===== Result infographic (share as JPG) ===== */
+// returns a canvas for the result infographic
+async function resultCanvas(o){
+  // o: {title, cls, date, qn, maxm, rows:[{name,score,total}], logo}
+  const W=1080,pad=48,rh=92,rows=o.rows;
+  const head=520,foot=130,H=head+rows.length*(rh+14)+foot+30;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#c25400');g.addColorStop(.5,'#8f3a00');g.addColorStop(1,'#5e2400');x.fillStyle=g;x.fillRect(0,0,W,H);
+  // soft decor circles
+  x.globalAlpha=.07;x.fillStyle='#fff';[[900,120,260],[100,700,200],[960,1000,220]].forEach(a=>{x.beginPath();x.arc(a[0],a[1]%H,a[2],0,7);x.fill()});x.globalAlpha=1;
+  const rr=(X,Y,w,h,r)=>{x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath()};
+  const star=(cx,cy,R,col)=>{x.beginPath();for(let i=0;i<10;i++){const r=i%2?R*.45:R,a=-Math.PI/2+i*Math.PI/5;x.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}x.closePath();x.fillStyle=col;x.fill()};
+  const fit=(t,max,font)=>{x.font=font;if(x.measureText(t).width<=max)return t;while(t.length>1&&x.measureText(t+'…').width>max)t=t.slice(0,-1);return t+'…'};
+  // header
+  x.drawImage(o.logo,pad,34,150,150);
+  x.fillStyle='#ffe27a';x.font='bold 66px Georgia,serif';x.textBaseline='alphabetic';x.fillText('The Wave',pad+176,98);x.fillText('Academy',pad+176,170);
+  x.fillStyle='rgba(255,255,255,.85)';x.font='italic 26px Georgia,serif';
+  // title card
+  rr(pad,214,W-2*pad,170,28);x.fillStyle='rgba(255,255,255,.95)';x.fill();
+  x.fillStyle='#b34700';x.font='bold 24px Arial,sans-serif';x.fillText('TEST RESULT',pad+30,256);
+  x.fillStyle='#1d1d1d';let ts=44;x.font='bold '+ts+'px Georgia,serif';while(x.measureText(o.title).width>W-2*pad-60&&ts>26){ts-=2;x.font='bold '+ts+'px Georgia,serif'}
+  x.fillText(fit(o.title,W-2*pad-60,x.font),pad+30,314);
+  x.fillStyle='#555';x.font='26px Arial,sans-serif';x.fillText(o.cls+'   •   '+o.date,pad+30,362);
+  // chips
+  const done=rows.length,avg=done?rows.reduce((s,r)=>s+r.score,0)/done:0,top=done?Math.max(...rows.map(r=>r.score)):0;
+  const chips=[['Attempted',String(done)],['Average',avg.toFixed(1)+'/'+o.maxm],['Highest',top+'/'+o.maxm]];
+  const cw=(W-2*pad-40)/3;
+  chips.forEach((ch,i)=>{const X=pad+i*(cw+20);rr(X,414,cw,84,22);x.fillStyle='rgba(0,0,0,.28)';x.fill();x.fillStyle='#ffe27a';x.font='bold 34px Georgia,serif';x.textAlign='center';x.fillText(ch[1],X+cw/2,455);x.fillStyle='rgba(255,255,255,.8)';x.font='20px Arial,sans-serif';x.fillText(ch[0],X+cw/2,484);x.textAlign='left'});
+  // rows
+  let rank=0,prev=null,y=head;
+  const bands=[['#ffd54a','#c98a00'],['#d9dee6','#8a93a3'],['#e0a070','#9a5a25']];
+  rows.forEach((r,i)=>{
+    if(r.score!==prev){rank=i+1;prev=r.score}
+    const pct=r.total?r.score/r.total*100:0,stars=pct>=90?3:pct>=75?2:pct>=50?1:0,tp=rank<=3;
+    rr(pad,y,W-2*pad,rh,24);x.fillStyle=tp?'rgba(255,248,225,.97)':'rgba(255,255,255,.92)';x.fill();
+    if(rank===1){x.lineWidth=5;x.strokeStyle='#ffd54a';x.stroke()}
+    // rank badge
+    const bc=tp?bands[rank-1]:['#6f86c8','#3d55a0'];
+    x.beginPath();x.arc(pad+52,y+rh/2,32,0,7);x.fillStyle=bc[0];x.fill();x.lineWidth=4;x.strokeStyle=bc[1];x.stroke();
+    x.fillStyle=tp?'#4a3000':'#fff';x.font='bold 32px Georgia,serif';x.textAlign='center';x.fillText(String(rank),pad+52,y+rh/2+11);x.textAlign='left';
+    // name
+    x.fillStyle='#1d1d1d';x.font='bold 32px Georgia,serif';x.fillText(fit(r.name,430,x.font),pad+104,y+rh/2-2);
+    // bar
+    const bx=pad+104,bw=330,by=y+rh/2+14;rr(bx,by,bw,12,6);x.fillStyle='#e6dccf';x.fill();
+    if(pct>0){rr(bx,by,Math.max(12,bw*pct/100),12,6);x.fillStyle=pct>=75?'#2e9e5b':pct>=50?'#e0a21a':'#d9534f';x.fill()}
+    // stars
+    for(let s=0;s<3;s++)star(pad+560+s*46,y+rh/2,19,s<stars?'#f5b301':'#e3d9c8');
+    // score
+    x.textAlign='right';x.fillStyle='#b34700';x.font='bold 38px Georgia,serif';x.fillText(r.score+'/'+r.total,W-pad-26,y+rh/2-2);
+    x.fillStyle='#666';x.font='22px Arial,sans-serif';x.fillText(Math.round(pct)+'%',W-pad-26,y+rh/2+28);x.textAlign='left';
+    y+=rh+14;
+  });
+  // legend + footer
+  x.fillStyle='rgba(255,255,255,.9)';x.font='22px Arial,sans-serif';let lx=pad;[[3,'90% and above'],[2,'75–89%'],[1,'50–74%']].forEach(a=>{for(let k=0;k<a[0];k++)star(lx+10+k*24,y+13,10,'#ffd54a');lx+=a[0]*24+8;x.fillText(a[1],lx,y+20);lx+=x.measureText(a[1]).width+34});
+  x.strokeStyle='rgba(255,255,255,.5)';x.setLineDash([10,8]);x.lineWidth=2;x.beginPath();x.moveTo(pad,y+50);x.lineTo(W-pad,y+50);x.stroke();x.setLineDash([]);
+  x.fillStyle='#fff';x.font='28px Georgia,serif';x.fillText('By Parmod Kumar',pad,y+96);x.textAlign='right';x.fillText('9999715042',W-pad,y+96);x.textAlign='left';
+  return c;
+}
+
+async function shareResult(){
+  const t=rcache&&rcache.t;if(!t)return;
+  const btn=document.getElementById('shr');if(btn){btn.disabled=true;btn.textContent='Making image…'}
+  try{
+    const rows=rcache.rows.filter(x=>x.res).map(x=>({name:x.name||'Student',score:x.res.score,total:x.res.total}));
+    rows.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
+    if(!rows.length){alert('No student has attempted this test yet.');return}
+    const im=new Image();im.src=WLOGO;await im.decode();
+    const d=new Date(startOf(t)||Date.now()),ds=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const cls=(t.section||'')+(isSub(t.section)?' · '+(t.subject||'Science'):'');
+    const mx=rows.reduce((m,r)=>Math.max(m,r.total),0);
+    const c=await resultCanvas({title:t.title||'Test',cls,date:ds,maxm:mx,rows,logo:im});
+    const blob=await new Promise(ok=>c.toBlob(ok,'image/jpeg',.92));
+    const nm=(t.title||'result').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'_').slice(0,40)||'result';
+    const f=new File([blob],'Result_'+nm+'.jpg',{type:'image/jpeg'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:t.title||'Test result'});return}catch(e){if(e&&e.name==='AbortError')return}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+  }catch(e){alert('Could not make the image: '+(e.message||e))}
+  finally{const b=document.getElementById('shr');if(b){b.disabled=false;b.textContent='📷 Share result as JPG'}}
+}
 function drawResults(){
   const t=rcache.t,rows=rcache.rows,done=rows.filter(x=>x.res),no=rows.filter(x=>!x.res);
   done.sort((a,b)=>b.res.score-a.res.score||(a.name||'').localeCompare(b.name||''));
   no.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const avg=done.length?(done.reduce((s,x)=>s+x.res.score,0)/done.length).toFixed(1):'–';
   let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(t.title)}</h1><p class="mut">${esc(t.section||'')}${isSub(t.section)?' · '+esc(t.subject||'Science'):''} · ${t.questions.length} questions · ${durMin(t)} min</p>
-  <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
+  <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button><button class="sec" id="shr" onclick="shareResult()">📷 Share result as JPG</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1d4ed8">●</span> Blue = attempted (tap for test analysis) &nbsp; <span style="color:#8b0000">●</span> Dark red = not attempted</p><div>`;
   const topS=done.length?done[0].res.score:null;
   done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>x.all.length?' 🔁':''}${x.all.some(r=>r.left)?' ⚠️<small style="opacity:.9"> Left the app</small>':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
