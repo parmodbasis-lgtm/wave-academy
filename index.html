@@ -101,7 +101,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-Q</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{ensureRf()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-R</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{if(isTeacher)ensureRf();else{const f=document.getElementById('rfb');if(f)f.remove()}}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -319,7 +319,7 @@ setInterval(()=>{lockTick();teacherTick()},1000);document.addEventListener('visi
 const excl=t=>isAsg(t)&&!(pubNow(t)&&mySecs().includes(t.section));
 const over=t=>t.deadline&&Date.now()>t.deadline&&!isAsg(t);
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
-const lob=()=>`<div style="margin-top:26px;text-align:right"><button class="bg" onclick="logout()">Logout</button></div>`;
+const lob=()=>`<div style="margin-top:26px;display:flex;justify-content:space-between;align-items:center;gap:10px"><button class="bg" onclick="logout()">Logout</button><button id="srf" onclick="hardRefresh()" style="background:linear-gradient(145deg,#2f7cf6,#1748b8);color:#fff;border:1px solid #0d3a9a;border-radius:14px;padding:12px 18px;font-weight:700;box-shadow:0 4px 12px rgba(23,72,184,.45)">⟳ Refresh</button></div>`;
 const subTabs=()=>isSub(sec)?`<div class="tabg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0">${[['Science','🔬 Science'],['Maths','➕ Maths']].map(a=>`<button class="gold ${subj===a[0]?'on':''}" style="padding:12px 2px" onclick="subj='${a[0]}';home()">${a[1]}</button>`).join('')}</div>`:'';
 let rawTests=[],schedT=null,lastSig='',numBusy=false;
 const numTxt=t=>t.num>0?'Test_'+String(t.num).padStart(2,'0'):'';
