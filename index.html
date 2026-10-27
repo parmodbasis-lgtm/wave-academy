@@ -100,7 +100,7 @@ function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-J</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-K</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -653,7 +653,7 @@ async function fmSave(){
     for(let k=n;k<old;k++)await db.collection('formulaSrc').doc(fid+'_'+k).delete();
     if(ed)await db.collection('formulae').doc(fid).update({title,free,pages:n});
     else await db.collection('formulae').doc(fid).set({section:sec,title,order:Math.max(0,...fm.list.map(l=>l.order||0))+1,free,published:true,pages:n,created:Date.now()});
-    fm.cache={};fm.edit=null;fm.pre=null;fm.busy=false;fmAdminIn(fm.o);
+    fm.cache={};fm.tc={};fm.edit=null;fm.pre=null;fm.busy=false;fmAdminIn(fm.o);
   }catch(e){fm.busy=false;b.disabled=false;err('Could not save: '+(e.message||e))}
 }
 async function fmSet(id,v){try{await db.collection('formulae').doc(id).update(v);fmAdminIn(fm.o)}catch(e){alert('Could not change: '+(e.message||e))}}
@@ -665,7 +665,7 @@ async function fmMove(id,dir){
 async function fmDel(id){
   if(!confirm('Delete this topic and all its pages? This cannot be undone.'))return;
   const f=fm.list.find(l=>l.id===id);
-  try{for(let k=0;k<(f?f.pages||0:0);k++)await db.collection('formulaSrc').doc(id+'_'+k).delete();await db.collection('formulae').doc(id).delete();fm.cache={};fmAdminIn(fm.o)}catch(e){alert('Could not delete: '+(e.message||e))}
+  try{for(let k=0;k<(f?f.pages||0:0);k++)await db.collection('formulaSrc').doc(id+'_'+k).delete();await db.collection('formulae').doc(id).delete();fm.cache={};fm.tc={};fmAdminIn(fm.o)}catch(e){alert('Could not delete: '+(e.message||e))}
 }
 const FMLOCK='This topic is available to authorized students only.';
 async function fmStudent(){
@@ -691,13 +691,35 @@ async function fmGet(id,k){
   if(!d.exists)throw new Error('locked');
   return fm.cache[key]=d.data().img;
 }
+fm.tc={};
+function fmTrim(src){
+  return new Promise(ok=>{
+    const i=new Image();
+    i.onload=()=>{try{
+      const W=i.naturalWidth,H=i.naturalHeight,sc=Math.min(1,320/W),w=Math.max(1,Math.round(W*sc)),hh=Math.max(1,Math.round(H*sc));
+      const c=document.createElement('canvas');c.width=w;c.height=hh;const x=c.getContext('2d');x.drawImage(i,0,0,w,hh);
+      const d=x.getImageData(0,0,w,hh).data;let l=w,r=-1,t=hh,b=-1;
+      for(let y=0;y<hh;y++)for(let xx=0;xx<w;xx++){const o=(y*w+xx)*4;if(d[o]<242||d[o+1]<242||d[o+2]<242){if(xx<l)l=xx;if(xx>r)r=xx;if(y<t)t=y;if(y>b)b=y}}
+      if(r<0)return ok(src);
+      const px=Math.round(w*.015),py=Math.round(hh*.008);
+      l=Math.max(0,l-px);r=Math.min(w-1,r+px);t=Math.max(0,t-py);b=Math.min(hh-1,b+py);
+      if((r-l+1)/w>.94&&(b-t+1)/hh>.94)return ok(src);
+      const sx=Math.round(l/sc),sy=Math.round(t/sc),sw=Math.round((r-l+1)/sc),sh=Math.round((b-t+1)/sc);
+      const o2=document.createElement('canvas');o2.width=sw;o2.height=sh;o2.getContext('2d').drawImage(i,sx,sy,sw,sh,0,0,sw,sh);
+      ok(o2.toDataURL('image/jpeg',.92));
+    }catch(e){ok(src)}};
+    i.onerror=()=>ok(src);i.src=src;
+  });
+}
 async function fmView(id,k){
   const l=fm.list.find(x=>x.id===id);if(!l)return;
   const n=l.pages||1;k=Math.max(0,Math.min(n-1,k));
   const nav=`<div class="row sp" style="margin-top:10px"><button class="sec" ${k===0?'disabled':''} onclick="fmView('${id}',${k-1})">‹ Previous</button><button ${k>=n-1?'disabled':''} onclick="fmView('${id}',${k+1})">Next ›</button></div>`;
-  h(`<button class="sec" onclick="fmStudent()">← Back</button><h2 style="margin:12px 0 2px">${esc(l.title)}</h2><p class="mut" style="margin:0 0 8px">Page ${k+1} of ${n} · tap the page to zoom</p><div id="fz" style="overflow:auto;border-radius:12px;background:#fff;min-height:200px"><div id="fw" style="position:relative;width:100%"><div id="fpg" style="padding:40px 0;text-align:center;color:#555">Loading…</div></div></div>${nav}`);
+  h(`<button class="sec" onclick="fmStudent()">← Back</button><h2 style="margin:12px 0 2px">${esc(l.title)}</h2><p class="mut" style="margin:0 0 8px">Page ${k+1} of ${n} · tap the page to zoom</p><div id="fz" style="overflow:auto;background:#fff;min-height:200px;width:100vw;margin-left:calc(50% - 50vw)"><div id="fw" style="position:relative;width:100%"><div id="fpg" style="padding:40px 0;text-align:center;color:#555">Loading…</div></div></div>${nav}`);
   try{
-    const img=await fmGet(id,k);
+    const tk=id+'_'+k;let img=await fmGet(id,k);
+    if(!fm.tc[tk])fm.tc[tk]=await fmTrim(img);
+    img=fm.tc[tk];
     const fw=document.getElementById('fw');if(!fw)return;
     fw.innerHTML=`<img src="${img}" draggable="false" alt="" style="width:100%;display:block;-webkit-touch-callout:none"><div style="position:absolute;inset:0;pointer-events:none;background-image:${FMWM}"></div>`;
     fw.onclick=()=>{fw.style.width=fw.style.width==='230%'?'100%':'230%'};
