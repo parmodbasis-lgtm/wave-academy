@@ -91,7 +91,7 @@ const fitWT=()=>{document.querySelectorAll('.wt').forEach(e=>{let f=48;e.style.f
 let rootNext=null,pushed=false,ignorePop=false,viewKind='root';
 const toast=m=>{let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:999;max-width:85%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.5)';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none'},2200)};
 let wmOn=false;
-function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher&&uid;
+function wmApply(){let w=document.getElementById('wm');const on=false;
   document.body.classList.toggle('nocp',!isTeacher&&!!uid);
   if(!on){if(w)w.remove();return}
   const tx=((myName&&!/@/.test(myName)?myName:'Student')+' · '+(myClass||'')).replace(/[<>&"']/g,'');
@@ -100,7 +100,7 @@ function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-K</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-L</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
