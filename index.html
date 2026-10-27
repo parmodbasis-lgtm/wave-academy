@@ -101,7 +101,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-P</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-Q</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{ensureRf()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1532,14 +1532,33 @@ async function resultCanvas(o){
   return c;
 }
 
+const isTestU=n=>/^\s*kamini\b/i.test(n||'');
+function ensureRf(){
+  if(document.getElementById('rfb'))return;
+  const b=document.createElement('button');b.id='rfb';b.title='Refresh';b.setAttribute('aria-label','Refresh');b.innerHTML='&#8635;';
+  b.style.cssText='position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:950;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(20,20,30,.55);color:#ffe27a;font-size:19px;line-height:32px;padding:0;margin:0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+  b.onclick=hardRefresh;document.body.appendChild(b);
+}
+async function hardRefresh(){
+  if(cur&&!confirm('Test chal raha hai. Refresh karne se pehle ke answers save hain, phir bhi refresh karein?'))return;
+  const b=document.getElementById('rfb');if(b){b.style.transition='transform .6s';b.style.transform='rotate(360deg)'}
+  try{
+    if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}
+    if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}
+  }catch(e){}
+  location.reload();
+}
 async function shareResult(){
   const t=rcache&&rcache.t;if(!t)return;
   const btn=document.getElementById('shr');if(btn){btn.disabled=true;btn.textContent='Making image…'}
   try{
-    const rows=rcache.rows.filter(x=>x.res).map(x=>({name:x.name||'Student',score:x.res.score,total:x.res.total}));
+    const tuRows=rcache.rows.filter(x=>isTestU(x.name));
+    const incT=tuRows.length?confirm('Test user ("'+(tuRows[0].name)+'") ka result bhi image me add karein?\n\nOK = Haan, add karo\nCancel = Nahi, chhod do'):false;
+    const keep=x=>incT||!isTestU(x.name);
+    const rows=rcache.rows.filter(x=>x.res&&keep(x)).map(x=>({name:x.name||'Student',score:x.res.score,total:x.res.total}));
     rows.sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
     if(!rows.length){alert('No student has attempted this test yet.');return}
-    const absent=rcache.rows.filter(x=>!x.res).map(x=>x.name||'Student').sort((a,b)=>a.localeCompare(b));
+    const absent=rcache.rows.filter(x=>!x.res&&keep(x)).map(x=>x.name||'Student').sort((a,b)=>a.localeCompare(b));
     const im=new Image();im.src=WLOGO;await im.decode();
     const d=new Date(startOf(t)||Date.now()),ds=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
     const cls=(t.section||'')+(isSub(t.section)?' · '+(t.subject||'Science'):'');
