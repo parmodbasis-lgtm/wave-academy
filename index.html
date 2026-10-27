@@ -100,7 +100,7 @@ function wmApply(){let w=document.getElementById('wm');const on=wmOn&&!isTeacher
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-H</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-I</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -427,12 +427,13 @@ function home(){normMine();wmOn=false;
     SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;o+=`<div class="card opt" style="display:block" onclick="sec='${s}';stab='tests';home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${s}</h2></div><span class="mut">›</span></div></div>`});
     return h(o+`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px"><button class="bg" onclick="allStudents()">👥 All students</button><button class="bg" onclick="logout()">Logout</button></div>`);
   }
-  const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:14px" onclick="stab='${k}';home()">${l}</button>`;
+  const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:${isVidSec(sec)&&isTeacher?11:14}px" onclick="stab='${k}';home()">${l}</button>`;
   let o=hd+banner();
-  if(isTeacher)o+=`<div class="tabg" style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?3:2},1fr);gap:8px;margin:4px 0 10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations'):''}${tb('stu','Students')}</div><div class="row sp" style="flex-wrap:nowrap;margin:6px 0 8px"><h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><button class="sec" onclick="sec=null;home()">← All sections</button></div>`;
-  else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button>':''}<button class="sec" style="width:100%" onclick="progress()">📊 My progress</button></div>`}
+  if(isTeacher)o+=`<div class="tabg" style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?4:2},1fr);gap:${isVidSec(sec)?6:8}px;margin:4px 0 10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations')+tb('fm','📐 Formulae'):''}${tb('stu','Students')}</div><div class="row sp" style="flex-wrap:nowrap;margin:6px 0 8px"><h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><button class="sec" onclick="sec=null;home()">← All sections</button></div>`;
+  else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button><button style="width:100%" onclick="fmStudent()">📐 Formulae</button>':''}<button class="sec" style="width:100%;${isVidSec(sec)?'grid-column:1/-1':''}" onclick="progress()">📊 My progress</button></div>`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
+  if(isTeacher&&stab==='fm'&&isVidSec(sec))return fmAdminIn(o);
   o+=subTabs();
   if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`;
   const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))));
@@ -551,6 +552,142 @@ async function playLec(lid){
     pl.innerHTML=`<div class="card"><b>${esc(l.title)}</b><div style="position:relative;padding-top:56.25%;margin-top:8px;background:#000;border-radius:10px;overflow:hidden"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(d.data().vid)}?rel=0&playsinline=1" title="${esc(l.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>`;
     pl.scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){msg()}
+}
+
+
+/* ===== Formulae (Physics XI / XII) ===== */
+let fm={list:[],o:null,edit:null,pgs:[],pre:null,cache:{},busy:false};
+const FMMAX=20;
+async function fmLoad(admin){
+  let r=db.collection('formulae').where('section','==',sec);if(!admin)r=r.where('published','==',true);
+  const l=await r.get();
+  fm.list=l.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+}
+async function pdfLib(){
+  if(window.pdfjsLib)return;
+  await loadJs('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  const w=await (await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js')).text();
+  pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w],{type:'text/javascript'}));
+}
+function fmJpg(src,sw,sh){
+  let w=Math.min(1000,sw),q=.75,out='';
+  for(let i=0;i<6;i++){
+    const c=document.createElement('canvas');c.width=Math.round(w);c.height=Math.round(sh*w/sw);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(src,0,0,c.width,c.height);
+    out=c.toDataURL('image/jpeg',q);
+    if(out.length<850000)return out;
+    q-=.1;w*=.85;
+  }
+  return out;
+}
+function fmImg(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{try{ok(fmJpg(i,i.naturalWidth,i.naturalHeight))}catch(e){no(e)}URL.revokeObjectURL(u)};i.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Could not read this image.'))};i.src=u})}
+async function fmPdf(file,add){
+  await pdfLib();
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  for(let n=1;n<=pdf.numPages;n++){
+    if(fm.pgs.length>=FMMAX)throw new Error('Maximum '+FMMAX+' pages per topic.');
+    const pg=await pdf.getPage(n),v0=pg.getViewport({scale:1}),sc=Math.min(1000,Math.max(700,v0.width*2))/v0.width,v=pg.getViewport({scale:sc});
+    const c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+    await pg.render({canvasContext:x,viewport:v}).promise;
+    add(fmJpg(c,c.width,c.height));
+    fmSt('Converting page '+n+' of '+pdf.numPages+'…');
+  }
+}
+const fmSt=m=>{const e=document.getElementById('fms');if(e)e.textContent=m};
+function fmThumbs(){const e=document.getElementById('fmt');if(e)e.innerHTML=fm.pgs.map((g,i)=>`<div style="position:relative"><img src="${g}" style="width:100%;border-radius:8px;display:block;background:#fff"><span style="position:absolute;left:4px;bottom:4px;background:#000a;color:#fff;font-size:11px;padding:1px 6px;border-radius:6px">${i+1}</span></div>`).join('')}
+async function fmPick(inp){
+  const fs=[...inp.files];inp.value='';if(!fs.length||fm.busy)return;
+  fm.busy=true;fm.pgs=[];fmThumbs();fmSt('Converting…');
+  try{
+    for(const f of fs){
+      if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name))await fmPdf(f,g=>{fm.pgs.push(g);fmThumbs()});
+      else{if(fm.pgs.length>=FMMAX)throw new Error('Maximum '+FMMAX+' pages per topic.');fm.pgs.push(await fmImg(f));fmThumbs()}
+    }
+    fmSt(fm.pgs.length+' page'+(fm.pgs.length==1?'':'s')+' ready.');
+  }catch(e){fm.pgs=[];fmThumbs();fmSt('Could not convert: '+(e.message||e))}
+  fm.busy=false;
+}
+function fmKeep(){fm.pre={title:document.getElementById('ft').value,free:document.getElementById('ff').checked}}
+async function fmAdminIn(o){
+  fm.o=o;h(o+'<p class="mut">Loading…</p>');
+  try{await fmLoad(true)}catch(e){return h(o+lecErr(e))}
+  fm.pgs=[];
+  const ls=fm.list,ed=fm.edit?ls.find(l=>l.id===fm.edit):null,p=fm.pre||{title:ed?ed.title:'',free:ed?!!ed.free:false};
+  let s=`<div class="card"><h2 style="margin-top:0">${ed?'Edit topic':'Add topic – Formulae'}</h2><input type="text" id="ft" value="${esc(p.title)}" placeholder="Topic name" oninput="fmKeep()"><p class="mut" style="margin:8px 0 4px">${ed?'Current pages: '+(ed.pages||0)+'. Choose new files only if you want to replace them.':'Upload the formulae as a PDF or as images.'}</p><div class="row"><button class="sec" onclick="document.getElementById('fpdf').click()">📄 Choose PDF</button><button class="sec" onclick="document.getElementById('fimg').click()">🖼️ Choose images</button></div><input type="file" id="fpdf" accept="application/pdf" style="display:none" onchange="fmPick(this)"><input type="file" id="fimg" accept="image/*" multiple style="display:none" onchange="fmPick(this)"><p id="fms" class="mut" style="margin:8px 0"></p><div id="fmt" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px"></div><label style="display:flex;gap:10px;align-items:center;margin:8px 0"><input type="checkbox" id="ff" ${p.free?'checked':''} onchange="fmKeep()" style="width:22px;height:22px;margin:0"> Free for all students</label><p id="fme" style="color:var(--bad);margin:6px 0"></p><div class="row"><button onclick="fmSave()" id="fsb">${ed?'Save changes':'Save topic'}</button>${ed?'<button class="sec" onclick="fm.edit=null;fm.pre=null;fmAdminIn(fm.o)">Cancel</button>':''}</div><p class="mut" style="margin:8px 0 0">New topics are Premium unless you tick Free. Up to ${FMMAX} pages per topic.</p></div>`;
+  ls.forEach((l,i)=>{
+    s+=`<div class="card"><b>${i+1}. ${esc(l.title)}</b><div class="mut" style="margin:4px 0">${l.pages||0} page${l.pages==1?'':'s'} · ${l.free?'🆓 Free':'⭐ Premium'} · ${l.published?'Published':'Hidden (draft)'}</div><div class="row"><button class="sec" onclick="fmMove('${l.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="sec" onclick="fmMove('${l.id}',1)" ${i===ls.length-1?'disabled':''}>↓</button><button class="sec" onclick="fmEdit('${l.id}')">Edit</button><button class="sec" onclick="fmSet('${l.id}',{free:${!l.free}})">${l.free?'Make Premium':'Make Free'}</button><button onclick="fmSet('${l.id}',{published:${!l.published}})">${l.published?'Unpublish':'Publish'}</button><button class="del" onclick="fmDel('${l.id}')">Delete</button></div></div>`;
+  });
+  if(!ls.length)s+='<div class="card mut">No formulae topics yet. Add your first topic above.</div>';
+  h(o+s);
+}
+function fmEdit(id){fm.edit=id;fm.pre=null;fmAdminIn(fm.o)}
+async function fmSave(){
+  if(fm.busy)return;
+  const err=m=>{document.getElementById('fme').textContent=m},title=document.getElementById('ft').value.trim(),free=document.getElementById('ff').checked;
+  const ed=fm.edit?fm.list.find(l=>l.id===fm.edit):null;
+  if(!title)return err('Please enter the topic name.');
+  if(!ed&&!fm.pgs.length)return err('Please choose a PDF or images first.');
+  fm.busy=true;const b=document.getElementById('fsb');b.disabled=true;err('');
+  try{
+    const fid=ed?ed.id:nid(),old=ed?(ed.pages||0):0;let n=old;
+    if(fm.pgs.length){
+      n=fm.pgs.length;
+      for(let k=0;k<n;k++){fmSt('Saving page '+(k+1)+' of '+n+'…');await db.collection('formulaSrc').doc(fid+'_'+k).set({fid,section:sec,k,img:fm.pgs[k]})}
+      for(let k=n;k<old;k++)await db.collection('formulaSrc').doc(fid+'_'+k).delete();
+    }
+    if(ed)await db.collection('formulae').doc(fid).update({title,free,pages:n});
+    else await db.collection('formulae').doc(fid).set({section:sec,title,order:Math.max(0,...fm.list.map(l=>l.order||0))+1,free,published:true,pages:n,created:Date.now()});
+    fm.cache={};fm.edit=null;fm.pre=null;fm.busy=false;fmAdminIn(fm.o);
+  }catch(e){fm.busy=false;b.disabled=false;err('Could not save: '+(e.message||e))}
+}
+async function fmSet(id,v){try{await db.collection('formulae').doc(id).update(v);fmAdminIn(fm.o)}catch(e){alert('Could not change: '+(e.message||e))}}
+async function fmMove(id,dir){
+  const a=fm.list.slice(),i=a.findIndex(l=>l.id===id),j=i+dir;if(i<0||j<0||j>=a.length)return;
+  [a[i],a[j]]=[a[j],a[i]];
+  try{for(let k=0;k<a.length;k++)if(a[k].order!==k+1)await db.collection('formulae').doc(a[k].id).update({order:k+1});fmAdminIn(fm.o)}catch(e){alert('Could not reorder: '+(e.message||e))}
+}
+async function fmDel(id){
+  if(!confirm('Delete this topic and all its pages? This cannot be undone.'))return;
+  const f=fm.list.find(l=>l.id===id);
+  try{for(let k=0;k<(f?f.pages||0:0);k++)await db.collection('formulaSrc').doc(id+'_'+k).delete();await db.collection('formulae').doc(id).delete();fm.cache={};fmAdminIn(fm.o)}catch(e){alert('Could not delete: '+(e.message||e))}
+}
+const FMLOCK='This topic is available to authorized students only.';
+async function fmStudent(){
+  h('<p class="mut">Loading formulae…</p>');
+  try{
+    lc.acc={};
+    await Promise.all([fmLoad(false),db.collection('access').doc(uid).get().then(d=>{lc.acc=d.exists?d.data():{}}).catch(()=>{})]);
+  }catch(e){return h(lecErr(e))}
+  let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">📐 Formulae</h1><p class="mut">${esc(sec)}</p><div id="pl"></div>`;
+  fm.list.forEach(l=>{
+    const lock=!l.free&&!canPrem();
+    o+=`<div class="card opt" style="display:block;cursor:pointer" onclick="fmOpen('${l.id}')"><div class="row sp"><b>${lock?'🔒':'▶'} ${esc(l.title)}</b><span class="mut">${l.free?'Free':(lock?'Premium':'⭐ Premium')}</span></div></div>`;
+  });
+  if(!fm.list.length)o+='<div class="card mut">No formulae have been added yet.</div>';
+  h(o);
+}
+function fmLocked(){const pl=document.getElementById('pl');if(!pl)return;pl.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:34px">🔒</div><b>${FMLOCK}</b><p class="mut" style="margin:6px 0 0">Please contact your teacher to get access.</p></div>`;pl.scrollIntoView({behavior:'smooth',block:'nearest'})}
+function fmOpen(id){const l=fm.list.find(x=>x.id===id);if(!l)return;if(!l.free&&!canPrem())return fmLocked();fmView(id,0)}
+const FMWM='url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="260" height="170"><text x="12" y="120" transform="rotate(-28 12 120)" font-family="Georgia,serif" font-size="17" font-weight="bold" fill="rgba(0,0,0,.09)">THE WAVE ACADEMY</text></svg>')+'")';
+async function fmGet(id,k){
+  const key=id+'_'+k;if(fm.cache[key])return fm.cache[key];
+  const d=await db.collection('formulaSrc').doc(key).get();
+  if(!d.exists)throw new Error('locked');
+  return fm.cache[key]=d.data().img;
+}
+async function fmView(id,k){
+  const l=fm.list.find(x=>x.id===id);if(!l)return;
+  const n=l.pages||1;k=Math.max(0,Math.min(n-1,k));
+  const nav=`<div class="row sp" style="margin-top:10px"><button class="sec" ${k===0?'disabled':''} onclick="fmView('${id}',${k-1})">‹ Previous</button><button ${k>=n-1?'disabled':''} onclick="fmView('${id}',${k+1})">Next ›</button></div>`;
+  h(`<button class="sec" onclick="fmStudent()">← Back</button><h2 style="margin:12px 0 2px">${esc(l.title)}</h2><p class="mut" style="margin:0 0 8px">Page ${k+1} of ${n} · tap the page to zoom</p><div id="fz" style="overflow:auto;border-radius:12px;background:#fff;min-height:200px"><div id="fw" style="position:relative;width:100%"><div id="fpg" style="padding:40px 0;text-align:center;color:#555">Loading…</div></div></div>${nav}`);
+  try{
+    const img=await fmGet(id,k);
+    const fw=document.getElementById('fw');if(!fw)return;
+    fw.innerHTML=`<img src="${img}" draggable="false" alt="" style="width:100%;display:block;-webkit-touch-callout:none"><div style="position:absolute;inset:0;pointer-events:none;background-image:${FMWM}"></div>`;
+    fw.onclick=()=>{fw.style.width=fw.style.width==='230%'?'100%':'230%'};
+    if(k<n-1)fmGet(id,k+1).catch(()=>{});
+  }catch(e){const fw=document.getElementById('fw');if(fw)fw.innerHTML=`<div style="padding:30px 12px;text-align:center;color:#333"><div style="font-size:34px">🔒</div><b>${FMLOCK}</b><p style="margin:6px 0 0;color:#555">Please contact your teacher to get access.</p></div>`}
 }
 
 /* ---------- Admin: payment & access per student ---------- */
