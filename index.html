@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-H</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-I</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1632,6 +1632,55 @@ function drawResults(){
   no.forEach(x=>o+=`<button class="pill stk no" onclick="notTaken('${x.uid}')"><span>${esc(x.name)}</span></button>`);
   if(!rows.length)o+='<div class="card mut">No students have joined this class yet.</div>';
   h(o+`</div><div id="nt"></div>`);
+}
+// Share result as JPG: draws the class result sheet on a canvas, then opens the share sheet (or downloads)
+async function shareResult(){
+  const btn=document.getElementById('shr');
+  const t=rcache.t,rows=rcache.rows||[];
+  const done=rows.filter(r=>r.res).sort((a,b)=>b.res.score-a.res.score||(a.name||'').localeCompare(b.name||''));
+  const no=rows.filter(r=>!r.res).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const avg=done.length?(done.reduce((s,r)=>s+r.res.score,0)/done.length).toFixed(1):'–';
+  const W=720,rh=40,lh=34;
+  const yEnd=266+done.length*rh+(no.length?60+no.length*lh:0);
+  const H=yEnd+50;
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const cx=cv.getContext('2d');
+  const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#c96a2b');g.addColorStop(1,'#7a3410');
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  cx.textAlign='left';cx.textBaseline='alphabetic';
+  cx.fillStyle='#ffe9b0';cx.font='bold 30px Arial, sans-serif';cx.fillText('The Wave Academy',32,58);
+  cx.fillStyle='#ffffff';cx.font='bold 28px Arial, sans-serif';cx.fillText(String(t.title||'Test').slice(0,38),32,104);
+  cx.fillStyle='#ffe9b0';cx.font='18px Arial, sans-serif';cx.fillText((t.section||'')+' · '+(t.questions||[]).length+' questions',32,134);
+  cx.fillText('Attempted: '+done.length+'   Not attempted: '+no.length+'   Average: '+avg,32,166);
+  cx.font='bold 18px Arial, sans-serif';cx.fillStyle='#ffe9b0';
+  cx.fillText('Name',32,214);cx.textAlign='right';cx.fillText('Score',W-32,214);cx.textAlign='left';
+  cx.fillRect(32,226,W-64,2);
+  let y=266;cx.font='20px Arial, sans-serif';
+  done.forEach((r,i)=>{
+    cx.fillStyle='#ffffff';cx.fillText((i+1)+'. '+(r.name||''),32,y);
+    cx.textAlign='right';cx.fillText(r.res.score+'/'+r.res.total,W-32,y);cx.textAlign='left';
+    y+=rh;
+  });
+  if(no.length){
+    y+=20;cx.fillStyle='#ffb3b3';cx.font='bold 18px Arial, sans-serif';cx.fillText('Not attempted',32,y);
+    y+=lh-4;cx.font='18px Arial, sans-serif';
+    no.forEach(r=>{cx.fillText(r.name||'',32,y);y+=lh});
+  }
+  cx.fillStyle='rgba(255,233,176,.7)';cx.font='14px Arial, sans-serif';cx.fillText('Generated from The Wave Academy',32,H-20);
+  if(btn)btn.disabled=true;
+  try{
+    const blob=await new Promise((ok,bad)=>cv.toBlob(b=>b?ok(b):bad(new Error('Image could not be created')),'image/jpeg',.92));
+    const name=String(t.title||'result').replace(/[^\w]+/g,'_')+'.jpg';
+    const file=new File([blob],name,{type:'image/jpeg'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:t.title||'Test result'});
+    }else{
+      const u=URL.createObjectURL(blob);const a=document.createElement('a');
+      a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(u),4000);
+    }
+  }catch(e){if(!e||e.name!=='AbortError')alert('JPG nahi ban paya: '+(e&&e.message?e.message:e))}
+  finally{if(btn)btn.disabled=false}
 }
 function notTaken(u){
   const x=rcache.rows.find(r=>r.uid===u),e=document.getElementById('nt');if(!x||!e)return;
