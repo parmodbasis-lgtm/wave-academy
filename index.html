@@ -61,7 +61,7 @@ button:not(.del):not(.nv):not(.pill):not(.mkb){background:linear-gradient(135deg
 button:disabled{opacity:.5}
 .p3d{background:linear-gradient(145deg,#ffffff,#cfe0d5);border-radius:22px;padding:14px 12px 10px;margin:8px 0 4px;border:1px solid #bcd0c4;box-shadow:9px 9px 18px rgba(0,0,0,.45),-4px -4px 12px rgba(255,255,255,.18),inset 0 1px 3px #fff,inset 0 -3px 6px rgba(0,0,0,.08)}
 .idl{background:linear-gradient(145deg,#ffffff,#cfe0d5);-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:22px;padding:14px 12px 10px;margin:8px 0 4px;border:1px solid #bcd0c4;box-shadow:9px 9px 18px rgba(0,0,0,.45),-4px -4px 12px rgba(255,255,255,.18),inset 0 1px 3px #fff,inset 0 -3px 6px rgba(0,0,0,.08)}
-.wt{background:linear-gradient(90deg,#ffe27a,#ffffff 55%,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.25;padding-bottom:.15em;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.wt{background:linear-gradient(90deg,#ffe27a,#ffffff 55%,#7dd3fc);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.2;padding-bottom:.15em;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
 @keyframes blk{0%,100%{opacity:1}50%{opacity:.3}}.blk{animation:blk 1.4s ease-in-out infinite}
 @page{size:A4;margin:0}
 @media print{body::before{display:none!important}html,body{background:#fff!important}body>*:not(#pp){display:none!important}#pp{display:block!important;position:static!important;left:auto!important;top:auto!important;width:auto!important;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-A</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-C</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1609,6 +1609,12 @@ function showReview(id,from,k){normMine();wmOn=true;
   let o=`<h1>${esc(t.title)}${(mineAll[id]||[]).length>1?' – Attempt '+(rec.attempt||1):''}</h1><div class="card" style="text-align:center"><div class="big">${rec.score}/${rec.total}</div></div>${brk(t,rec)}`;
   t.questions.forEach((q,i)=>{o+=`<div class="card">${qTag(q,ans[i],times,i)}<b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);o+='</div>'});
   h(o+`<button onclick="${from==='p'?'progress()':'home()'}">Back</button>`);
+}
+async function hardRefresh(){
+  if(timer&&!confirm('Test chal raha hai. Refresh karne se test band ho sakta hai. Phir bhi refresh karein?'))return;
+  try{if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}}catch(e){}
+  try{if(window.caches){const ks=await caches.keys();for(const k of ks)await caches.delete(k)}}catch(e){}
+  location.replace(location.pathname+'?r='+Date.now());
 }
 let hiddenAt=0,swReg=null,hadSW=false;
 try{if('serviceWorker' in navigator&&location.protocol.startsWith('http')){hadSW=!!navigator.serviceWorker.controller;navigator.serviceWorker.register('sw.js').then(r=>{swReg=r}).catch(()=>{});
