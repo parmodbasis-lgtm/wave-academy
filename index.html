@@ -87,7 +87,7 @@ button:disabled{opacity:.5}
 .pwb{position:relative}.pwb input{padding-right:44px}.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:20px;opacity:.5;user-select:none;padding:4px}
 body.nocp,body.nocp *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}body.nocp input,body.nocp textarea{-webkit-user-select:text;user-select:text}
 @keyframes lgspin{to{transform:rotate(360deg)}}@keyframes lgdots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}@keyframes lgpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-.lgo{position:fixed;inset:0;background:rgba(110,40,0,.85);z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;text-align:center;padding:20px}
+.lgo{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#c96a2b,#7a3410 70%);z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;text-align:center;padding:20px}
 .lgr{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center}.lgr{width:240px!important;height:240px!important}.lgr img{width:110px;height:110px;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.5);animation:lgpulse 2.6s ease-in-out infinite}#lgc{position:absolute;left:-30px;top:-30px;width:300px;height:300px;pointer-events:none}
 .lgt:after{content:'';animation:lgdots 1.4s steps(1,end) infinite}
 </style>
@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-F</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-G</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -230,7 +230,7 @@ function showLg(m){removeLg();lgStartT=performance.now();const d=document.create
 
 // Login loader: photon wave hits the electron, electron jumps out and falls back, energy packets + "E = hc/λ"
 // One cycle = LG_CYC ms. The loader stays for at least 2 full cycles on every login.
-const LG_CYC=9900, LG_MIN=2*LG_CYC;
+const LG_SPEED=2, LG_CYC=9900/LG_SPEED, LG_MIN=2*LG_CYC;
 let lgStartT=0;
 function startLgFx(){
   const cv=document.getElementById('lgc');if(!cv)return;
@@ -274,11 +274,12 @@ function startLgFx(){
       x.fillStyle='rgba(255,40,40,1)';x.shadowColor='rgba(255,40,40,1)';x.shadowBlur=12;x.fill();x.shadowBlur=0;
     }
   }
-  const frame=now=>{
+  const frame=raw=>{
     if(!document.getElementById('lgc'))return;
-    if(seq===null)seq=now;
-    if(now-seq>=TEND){seq=now;lastShed=0;lastEmit=-1e9;emitCount=0;packets.length=0;trail.length=0}
-    const tt=now-seq;
+    if(seq===null)seq=raw;
+    let now=(raw-seq)*LG_SPEED;
+    if(now>=TEND){seq=raw;now=0;lastShed=0;lastEmit=-1e9;emitCount=0;packets.length=0;trail.length=0}
+    const tt=now;
     let r=RI;
     if(tt<T1){
       const k=tt/T1;
