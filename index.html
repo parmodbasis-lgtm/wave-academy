@@ -69,21 +69,20 @@ button:disabled{opacity:.5}
 #pp .pp-page{position:relative;width:793px;height:1122px;overflow:hidden;background:#fff;color:#000;font-family:LB,Georgia,serif;page-break-after:always;break-after:page}
 #pp .pp-page:last-child{page-break-after:auto;break-after:auto}
 #pp .hd{position:absolute;left:48px;top:30px;width:698px;height:88px}
-#pp .hd h1{margin:0;font:700 28px LB,Georgia,serif;line-height:1.05}
-#pp .sb{font:14px/1.25 LB,Georgia,serif;margin-top:4px}
-#pp .hd img{position:absolute;right:0;top:-44px;width:158px;height:158px}
-#pp .rl{position:absolute;left:48px;width:698px;top:124px;border-top:3px double #000}
-#pp .cl{position:absolute;left:48px;top:134px;width:698px;height:860px;display:flex;gap:18px}
-#pp .cc{width:340px;position:relative}
-#pp .pp-q{border:1px solid #000;margin-bottom:-1px;display:flex;font-size:12px;line-height:1.25}
-#pp .pp-n{width:26px;flex:none;border-right:1px solid #000;text-align:center;font-weight:700;padding-top:3px}
-#pp .pp-b{padding:3px 6px 4px;flex:1;min-width:0}
-#pp .pp-o div{margin-left:12px}
-#pp .pp-a{font-weight:700;margin-top:4px}
+#pp .hd h1{margin:0;font:700 38px LB,Georgia,serif;line-height:1.05}
+#pp .sb{font:700 14px/1.25 LB,Georgia,serif;margin-top:4px}
+#pp .sb+.sb{margin-top:0}
+#pp .hd img{position:absolute;right:-31px;top:-44px;width:158px;height:158px}
+#pp .rl{position:absolute;left:48px;width:698px;top:124px;border-top:3px solid #000}
+#pp .cl{position:absolute;left:48px;top:134px;width:698px;height:918px;column-count:2;column-gap:18px;column-fill:auto;column-rule:1px dotted #000;overflow:hidden;font-size:12px;line-height:1.25}
+#pp .pp-q{margin:0 0 6px;orphans:1;widows:1;text-align:justify;padding-left:34px;position:relative}
+#pp .pp-n{position:absolute;left:0;top:0;font-weight:700}
+#pp .pp-o div{text-align:left}
+#pp .pp-a{font-weight:700;margin-top:3px}
 #pp .pp-ft{position:absolute;left:48px;width:698px;bottom:34px;border-top:2px dashed #000;padding-top:6px;display:flex;justify-content:space-between;font-size:16px}
-#pp .pp-wm{position:absolute;left:150px;top:520px;font:700 60px LB,Georgia,serif;color:rgba(0,0,0,.07);transform:rotate(-40deg);white-space:nowrap;pointer-events:none}
-#pp .pp-pg{position:absolute;right:10px;bottom:320px;transform:rotate(-90deg);transform-origin:right bottom;font-size:12px}
-#pp .pp-b img{max-width:100%;max-height:160px}
+#pp .pp-wm{position:absolute;left:0;width:793px;top:50%;text-align:center;font:700 60px LB,Georgia,serif;color:transparent;-webkit-text-stroke:1.2px rgba(0,0,0,.22);transform:translateY(-50%) rotate(-40deg);white-space:nowrap;pointer-events:none}
+#pp .pp-pg{position:absolute;right:18px;bottom:65px;transform:rotate(-90deg);transform-origin:right bottom;font-size:12px}
+#pp .pp-q img{max-width:100%;max-height:160px}
 #pp .pp-o img{max-height:70px}
 .pwb{position:relative}.pwb input{padding-right:44px}.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:20px;opacity:.5;user-select:none;padding:4px}
 body.nocp,body.nocp *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}body.nocp input,body.nocp textarea{-webkit-user-select:text;user-select:text}
@@ -122,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 27-Oct-U</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-A</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -1464,37 +1463,29 @@ const WLOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAFoCAYAAAB65WHVA
 async function paperPdf(id,key){
   const t=tests.find(x=>x.id===id);if(!t)return;
   const R={'Class IX':'9','Class X':'10','Physics XI':'11','Physics XII':'12'};
+  const RN={'9':'IX','10':'X','11':'XI','12':'XII'};
   const cn=R[t.section]||'',sub=isSub(t.section)?(t.subject||'Science'):'Physics';
   const X=v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const pp=document.getElementById('pp');
-  try{await Promise.all([document.fonts.load('700 28px LB'),document.fonts.load('12px LB')])}catch(e){}
+  try{await Promise.all([document.fonts.load('700 38px LB'),document.fonts.load('12px LB')])}catch(e){}
   const qHtml=(q,i)=>{
-    let o=`<div class="pp-q"><div class="pp-n">${i}.</div><div class="pp-b"><div>${fmt(q.q)}</div>${imgQ(q)}<div class="pp-o">`;
+    let o=`<div class="pp-q"><div class="pp-n">Q${i}.</div><div>${fmt(q.q)}</div>${imgQ(q)}<div class="pp-o">`;
     q.options.forEach((op,j)=>o+=`<div>${'abcd'[j]}) ${optHtml(q,j)}${key&&q.answer===j?' <span style="color:#15803d;font-weight:700">&#10004;</span>':''}</div>`);
-    return o+`</div>${key?'':'<div class="pp-a">Answer:</div>'}</div></div>`;
+    return o+`</div>${key?'':'<div class="pp-a">Answer:</div>'}</div>`;
   };
-  // measure each question at column width
+  const hdr=`<div class="hd"><h1>The Wave Academy</h1><div class="sb">${cn?'Class '+(RN[cn]||cn)+' _ ':''}${X(sub)}</div><div class="sb">Topic: ${X(t.title||'')}</div><img src="${WLOGO}" alt=""></div><div class="rl"></div>`;
+  const qs=t.questions;
+  const pageHtml=(start,list,pno,numbered)=>`<div class="pp-page"><div class="pp-wm">THE WAVE ACADEMY</div>${hdr}<div class="cl">${list.map((q,i)=>qHtml(q,start+i+1)).join('')}</div><div class="pp-ft"><span>By Parmod Kumar</span><span>&#9742; 9999715042</span></div><div class="pp-pg">Page ${pno}</div></div>`;
+  // measure offscreen: does this many questions fit in the two columns of one page?
   pp.className='go';
-  const m=document.createElement('div');m.style.width='340px';pp.appendChild(m);
-  const items=t.questions.map(q=>{m.innerHTML=qHtml(q,0);return {q,h:m.firstElementChild.offsetHeight}});
-  // pack: fill gaps in each column (Option B), pages as needed
-  const COLH=860,pages=[];let pend=items.slice();
-  while(pend.length){
-    const pg={c:[[],[]],u:[0,0]};let col=0;
-    while(pend.length){
-      let placed=false;
-      for(let k=0;k<Math.min(pend.length,6);k++){
-        const it=pend[k];
-        if(pg.u[col]+it.h<=COLH||pg.u[col]===0){pg.u[col]+=it.h;pg.c[col].push(it.q);pend.splice(k,1);placed=true;break}
-      }
-      if(!placed){if(col===0){col=1;continue}break}
-    }
-    pages.push(pg);
+  const fits=(start,cnt,pno)=>{pp.innerHTML=pageHtml(start,qs.slice(start,start+cnt),pno);const cl=pp.querySelector('.cl');return cl.scrollWidth<=cl.clientWidth+1};
+  const plan=[];let i=0;
+  while(i<qs.length){
+    let k=1;
+    while(i+k<qs.length&&fits(i,k+1,plan.length+1))k++;
+    plan.push([i,k]);i+=k;
   }
-  // render pages
-  const hdr=`<div class="hd"><h1>The Wave Academy</h1><div class="sb">${cn?'Class '+cn+'th _ ':''}${X(sub)}</div><div class="sb">Topic: ${X(t.title||'')}</div><img src="${WLOGO}" alt=""></div><div class="rl"></div>`;
-  let n=0;
-  pp.innerHTML=pages.map((pg,pi)=>`<div class="pp-page"><div class="pp-wm">THE WAVE ACADEMY</div>${hdr}<div class="cl"><div class="cc">${pg.c[0].map(q=>qHtml(q,++n)).join('')}</div><div class="cc">${pg.c[1].map(q=>qHtml(q,++n)).join('')}</div></div><div class="pp-ft"><span>By Parmod Kumar</span><span>&#9742; 9999715042</span></div><div class="pp-pg">Page ${pi+1}</div></div>`).join('');
+  pp.innerHTML=plan.map(([s,c],pi)=>pageHtml(s,qs.slice(s,s+c),pi+1)).join('');
   pp.className='';
   const old=document.title;document.title=(t.title||'Question paper')+(key?' - Answer key':' - Question paper');
   const done=()=>{document.title=old;pp.innerHTML='';pp.className='';window.removeEventListener('afterprint',done)};
