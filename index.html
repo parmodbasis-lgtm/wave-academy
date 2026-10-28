@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-G</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-H</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -576,7 +576,7 @@ function home(){normMine();wmOn=false;
     return h(o+`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px"><button class="bg" onclick="allStudents()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">All students</button><button class="bg" onclick="logout()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">Logout</button><button onclick="hardRefresh()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px;background:linear-gradient(145deg,#2f7cf6,#1748b8);color:#fff;border:1px solid #0d3a9a;border-radius:14px;font-weight:700;box-shadow:0 4px 12px rgba(23,72,184,.45)">Refresh</button></div>`);
   }
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:${isVidSec(sec)&&isTeacher?11:14}px" onclick="stab='${k}';home()">${l}</button>`;
-  let o=hd+banner();
+  let o=isTeacher?hd:hd+banner();
   if(isTeacher)o+=`<div class="tabg" style="display:grid;grid-template-columns:repeat(${isVidSec(sec)?4:2},1fr);gap:${isVidSec(sec)?6:8}px;margin:4px 0 10px">${tb('tests','Tests')}${isVidSec(sec)?tb('vid','🎬 Derivations')+tb('fm','📐 Formulae'):''}${tb('stu','Students')}</div><div class="row sp" style="flex-wrap:nowrap;margin:6px 0 8px"><h2 style="margin:0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2><button class="sec" onclick="sec=null;home()">← All sections</button></div>`;
   else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button><button style="width:100%" onclick="fmStudent()">📐 Formulae</button>':''}<button class="sec" style="width:100%;${isVidSec(sec)?'grid-column:1/-1':''}" onclick="progress()">📊 My progress</button></div>`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
