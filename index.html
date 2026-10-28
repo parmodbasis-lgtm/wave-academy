@@ -88,7 +88,7 @@ button:disabled{opacity:.5}
 body.nocp,body.nocp *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}body.nocp input,body.nocp textarea{-webkit-user-select:text;user-select:text}
 @keyframes lgspin{to{transform:rotate(360deg)}}@keyframes lgdots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}@keyframes lgpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 .lgo{position:fixed;inset:0;background:rgba(110,40,0,.85);z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;text-align:center;padding:20px}
-.lgr{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center}.lgr:before{content:'';position:absolute;inset:0;border-radius:50%;border:5px solid rgba(255,255,255,.22);border-top-color:#ffd84a;border-right-color:#ffd84a;animation:lgspin 1s linear infinite}.lgr img{width:104px;height:104px;border-radius:50%;animation:lgpulse 1.4s ease-in-out infinite}
+.lgr{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center}.lgr{width:240px!important;height:240px!important}.lgr img{width:110px;height:110px;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.5);animation:lgpulse 2.6s ease-in-out infinite}#lgc{position:absolute;left:-30px;top:-30px;width:300px;height:300px;pointer-events:none}
 .lgt:after{content:'';animation:lgdots 1.4s steps(1,end) infinite}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-D</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-F</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -226,8 +226,134 @@ async function fpSend(){
 }
 const authErr=c=>c.includes('email-already')?'This email is already registered. Please sign in.':(c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found'))?'Wrong email or password.':c.includes('too-many')?'Too many attempts. Please try again later.':c.includes('network')?'No internet connection.':'Something went wrong. Please try again.';
 let lgTm=null;
-function showLg(m){hideLg();const d=document.createElement('div');d.id='lgo';d.className='lgo';d.innerHTML='<div class="lgr"><img src="'+LOGO+'" alt=""></div><div class="lgt" style="margin-top:22px">'+m+'</div>';document.body.appendChild(d);lgTm=setTimeout(hideLg,25000)}
-function hideLg(){clearTimeout(lgTm);const d=document.getElementById('lgo');if(d)d.remove()}
+function showLg(m){removeLg();lgStartT=performance.now();const d=document.createElement('div');d.id='lgo';d.className='lgo';d.innerHTML='<div class="lgr"><img src="'+LOGO+'" alt=""></div><div class="lgt" style="margin-top:22px">'+m+'</div>';d.querySelector('.lgr').insertAdjacentHTML('afterbegin','<canvas id="lgc" width="600" height="600"></canvas>');document.body.appendChild(d);startLgFx();lgTm=setTimeout(removeLg,30000)}
+
+// Login loader: photon wave hits the electron, electron jumps out and falls back, energy packets + "E = hc/λ"
+// One cycle = LG_CYC ms. The loader stays for at least 2 full cycles on every login.
+const LG_CYC=9900, LG_MIN=2*LG_CYC;
+let lgStartT=0;
+function startLgFx(){
+  const cv=document.getElementById('lgc');if(!cv)return;
+  const x=cv.getContext('2d');
+  const S=2,C=150,RI=90,RO=142,RS=160;
+  const A0=-Math.PI/4;
+  const EX=C+Math.cos(A0)*RI, EY=C+Math.sin(A0)*RI;
+  const SX=C+Math.cos(A0)*RS, SY=C+Math.sin(A0)*RS;
+  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  const T_HIT=2800,T_JUMP=2000,T_SIT=1000,T_FALL=2000,T_EMIT=1200,GAP=900;
+  const T1=T_HIT,T2=T1+T_JUMP,T3=T2+T_SIT,T4=T3+T_FALL,T5=T4+T_EMIT,TEND=T5+GAP; // TEND === LG_CYC
+  const trail=[],packets=[];
+  let seq=null,lastShed=0,lastEmit=-1e9,emitCount=0;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  function drawPhoton(k){
+    const L=Math.hypot(EX-SX,EY-SY), ux=(EX-SX)/L, uy=(EY-SY)/L, px=-uy, py=ux;
+    const n=3.5, A=6;
+    x.beginPath();
+    for(let i=0;i<=160;i++){
+      const u=i/160*k;
+      const bx=SX+(EX-SX)*u, by=SY+(EY-SY)*u;
+      const off=A*Math.sin(2*Math.PI*n*u);
+      const qx=bx+px*off, qy=by+py*off;
+      i?x.lineTo(qx,qy):x.moveTo(qx,qy);
+    }
+    x.lineCap='round';
+    x.strokeStyle='rgba(255,40,40,1)';x.lineWidth=3.2;x.shadowColor='rgba(255,40,40,1)';x.shadowBlur=14;x.stroke();
+    x.strokeStyle='rgba(255,235,220,1)';x.lineWidth=1.1;x.shadowColor='rgba(255,120,120,1)';x.shadowBlur=6;x.stroke();x.shadowBlur=0;
+    {const hx=SX+(EX-SX)*k, hy=SY+(EY-SY)*k;
+     const lx=hx-px*18, ly=hy-py*18;
+     const al=Math.min(1,k/0.12)*Math.min(1,(1-k)/0.25);
+     if(al>0.01){x.save();x.globalAlpha=al;
+       x.font='bold 11px Arial, sans-serif';x.textAlign='center';x.textBaseline='middle';
+       x.fillStyle='rgba(255,235,220,1)';x.shadowColor='rgba(255,40,40,1)';x.shadowBlur=6;
+       x.fillText('EM Wave',lx,ly);x.restore();}}
+    if(k>0.97){
+      const hx=EX, hy=EY, ah=10;
+      x.beginPath();x.moveTo(hx,hy);
+      x.lineTo(hx-ux*ah+px*ah*.5,hy-uy*ah+py*ah*.5);
+      x.lineTo(hx-ux*ah-px*ah*.5,hy-uy*ah-py*ah*.5);x.closePath();
+      x.fillStyle='rgba(255,40,40,1)';x.shadowColor='rgba(255,40,40,1)';x.shadowBlur=12;x.fill();x.shadowBlur=0;
+    }
+  }
+  const frame=now=>{
+    if(!document.getElementById('lgc'))return;
+    if(seq===null)seq=now;
+    if(now-seq>=TEND){seq=now;lastShed=0;lastEmit=-1e9;emitCount=0;packets.length=0;trail.length=0}
+    const tt=now-seq;
+    let r=RI;
+    if(tt<T1){
+      const k=tt/T1;
+      if(tt-lastShed>240){lastShed=tt;
+        const hx=SX+(EX-SX)*k, hy=SY+(EY-SY)*k;
+        trail.push({x:hx,y:hy,vx:rnd(-6,6),vy:rnd(-6,6),t0:now,life:1100});}
+    }else if(tt<T2){ r=RI+(RO-RI)*ease((tt-T1)/T_JUMP); }
+    else if(tt<T3){ r=RO; }
+    else if(tt<T4){ r=RO-(RO-RI)*ease((tt-T3)/T_FALL); }
+    else { r=RI; }
+    // packets only while the electron leaves the upper shell (falling back): 3 releases
+    if(tt>=T3&&tt<T4&&emitCount<3&&tt-lastEmit>T_FALL/4){lastEmit=tt;emitCount++;
+      const dx=Math.cos(A0),dy=Math.sin(A0);
+      const ex0=C+dx*r, ey0=C+dy*r;
+      const sp=rnd(26,36), spread=rnd(-0.5,0.5);
+      const ang=A0+spread;
+      packets.push({x:ex0,y:ey0,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,t0:now,life:rnd(1500,1900),kind:'p'});
+      if(emitCount===1)packets.push({x:ex0+dx*12,y:ey0+dy*12-10,vx:0,vy:0,t0:now,life:1900,kind:'t'});
+    }
+    x.clearRect(0,0,600,600);x.save();x.scale(S,S);
+    [RI,RO].forEach(rr=>{x.beginPath();x.arc(C,C,rr,0,Math.PI*2);x.strokeStyle='rgba(255,226,122,.45)';x.lineWidth=1.4;x.setLineDash([4,4]);x.stroke();x.setLineDash([]);});
+    if(tt<T1)drawPhoton(tt/T1);
+    const ex=C+Math.cos(A0)*r, ey=C+Math.sin(A0)*r;
+    const hot=tt>=T1&&tt<T4;
+    const g=x.createRadialGradient(ex,ey,0,ex,ey,hot?12:9);
+    g.addColorStop(0,hot?'rgba(255,255,255,1)':'rgba(255,240,170,1)');
+    g.addColorStop(.35,hot?'rgba(127,231,255,.9)':'rgba(245,197,24,.9)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=g;x.beginPath();x.arc(ex,ey,hot?12:9,0,Math.PI*2);x.fill();
+    for(let i=trail.length-1;i>=0;i--){const p=trail[i],k=(now-p.t0)/p.life;
+      if(k>=1){trail.splice(i,1);continue}
+      p.x+=p.vx/60;p.y+=p.vy/60;const a=1-k;
+      x.fillStyle='rgba(255,120,120,'+a+')';x.shadowColor='rgba(255,80,80,1)';x.shadowBlur=6;
+      x.beginPath();x.arc(p.x,p.y,1.8*a+.5,0,Math.PI*2);x.fill();x.shadowBlur=0;}
+    for(let i=packets.length-1;i>=0;i--){const p=packets[i];
+      if(now<p.t0)continue;const k=(now-p.t0)/p.life;
+      if(k>=1){packets.splice(i,1);continue}
+      if(p.kind==='p'&&k>0.8){
+        for(let j=0;j<7;j++){const a=rnd(0,Math.PI*2),sp=rnd(18,34);
+          packets.push({x:p.x,y:p.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,t0:now,life:rnd(330,460),kind:'s'});}
+        packets.splice(i,1);continue;
+      }
+      if(p.kind==='t'){
+        x.save();x.globalAlpha=Math.min(1,k/0.1)*(1-k);
+        x.font='bold 11px Arial, sans-serif';x.textAlign='center';x.textBaseline='middle';
+        x.fillStyle='rgba(255,235,160,1)';x.shadowColor='rgba(255,200,80,1)';x.shadowBlur=6;
+        x.fillText('E = hc/λ',p.x,p.y);x.restore();continue;
+      }
+      p.x+=p.vx/60;p.y+=p.vy/60;
+      if(p.kind==='s'){p.vx*=.96;p.vy*=.96}
+      const a=1-k;
+      if(p.kind==='p'){
+        x.fillStyle='rgba(255,236,160,'+a+')';x.shadowColor='rgba(255,226,122,1)';x.shadowBlur=7;
+        x.beginPath();x.arc(p.x,p.y,2*a+.6,0,Math.PI*2);x.fill();x.shadowBlur=0;
+      }else{
+        const m=Math.hypot(p.vx,p.vy)||1;
+        x.strokeStyle='rgba(255,236,160,'+a+')';x.lineWidth=1.5*a+.3;x.lineCap='round';
+        x.shadowColor='rgba(255,226,122,1)';x.shadowBlur=6;
+        x.beginPath();x.moveTo(p.x-p.vx/m*3.5,p.y-p.vy/m*3.5);x.lineTo(p.x,p.y);x.stroke();x.shadowBlur=0;
+      }
+    }
+    x.restore();requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+// remove the loader right away (used on errors and for the fallback timer)
+function removeLg(){clearTimeout(lgTm);lgTm=null;const d=document.getElementById('lgo');if(d)d.remove()}
+// login finished: keep the loader until at least 2 full cycles have run
+function hideLg(){
+  if(!document.getElementById('lgo'))return;
+  const left=lgStartT+LG_MIN-performance.now();
+  clearTimeout(lgTm);
+  if(left>0)lgTm=setTimeout(removeLg,left);
+  else removeLg();
+}
 async function doAuth(){
   const up=mode==='up',g=id=>document.getElementById(id),e=g('le').value.trim().toLowerCase(),p=g('lp').value,err=s=>{g('lerr').textContent=s};
   if(!e)return err('Please enter your email ID.');
@@ -245,7 +371,7 @@ async function doAuth(){
     const cr=await auth.createUserWithEmailAndPassword(e,p);
     await db.collection('users').doc(cr.user.uid).set({name:n,cls:c,sec:CLS[c],email:e,created:Date.now()});
     await cr.user.sendEmailVerification();
-  }catch(x){hideLg();err(authErr(x.code||''))}
+  }catch(x){removeLg();err(authErr(x.code||''))}
 }
 const PWRULE='Password: at least 6 characters, letters and numbers only, with at least one letter and one number.';
 const pwOk=p=>/^[A-Za-z0-9]{6,}$/.test(p)&&/[A-Za-z]/.test(p)&&/\d/.test(p);
