@@ -39,7 +39,7 @@ textarea{resize:vertical}.qimg{max-width:100%;border-radius:8px;display:block;ma
 .isub{font-size:10px;font-weight:700;color:#8a5a00;margin-top:1px}
 .bulb{display:inline-block;animation:bulb 2.2s ease-in-out infinite}
 @keyframes bulb{0%,100%{opacity:.75;transform:scale(1);filter:none}50%{opacity:1;transform:scale(1.18);filter:drop-shadow(0 0 6px #ffd84a)}}
-.sic{display:inline-flex;width:38px;height:38px;border-radius:50%;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff3b0,#f5c518 55%,#c99700);font-size:20px;margin-right:10px;box-shadow:0 2px 6px rgba(120,90,0,.4);flex:none}
+.sic{display:inline-flex;width:38px;height:38px;border-radius:50%;align-items:center;justify-content:center;background:linear-gradient(135deg,#2f8fd8,#0a5aa6 55%,#063a6e);border:2px solid #ffffff;font-size:20px;margin-right:10px;box-shadow:0 2px 6px rgba(0,30,60,.5);flex:none}
 .bdg{display:inline-block;margin-left:6px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;vertical-align:middle;white-space:nowrap}
 .bdg.n{background:#1d4ed8}.bdg.ok{background:#15803d}.bdg.md{background:#b88a00}.bdg.lo{background:#c62828}.bdg.pz{background:#6d28d9}
 .stc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-weight:700}.stc span.pl{padding:3px 10px;border-radius:999px;background:var(--ac2);color:#312e81;font-size:13px}
@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-K</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-L</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
