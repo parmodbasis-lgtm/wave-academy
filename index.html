@@ -121,7 +121,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-T</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 28-Oct-U</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 window.addEventListener('popstate',()=>{
@@ -572,7 +572,7 @@ function home(){normMine();wmOn=false;
   }
   if(sec===null){
     let o=hd+banner();
-    SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;o+=`<div class="card opt" style="display:block" onclick="sec='${s}';stab='tests';home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${s}</h2></div><span class="mut">›</span></div></div>`});
+    SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;o+=`<div class="card opt" style="display:block" onclick="flipOpen('${s}')"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${s}</h2></div><span class="mut">›</span></div></div>`});
     return h(o+`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px"><button class="bg" onclick="allStudents()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">All students</button><button class="bg" onclick="logout()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">Logout</button><button onclick="hardRefresh()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px;background:linear-gradient(145deg,#2f7cf6,#1748b8);color:#fff;border:1px solid #0d3a9a;border-radius:14px;font-weight:700;box-shadow:0 4px 12px rgba(23,72,184,.45)">Refresh</button></div>`);
   }
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:${isVidSec(sec)&&isTeacher?11:14}px" onclick="stab='${k}';home()">${l}</button>`;
@@ -1737,6 +1737,57 @@ async function shareResult(){
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
   }catch(e){alert('Could not make the image: '+(e.message||e))}
   finally{const b=document.getElementById('shr');if(b){b.disabled=false;b.textContent='📷 Share result as JPG'}}
+}
+// Page-curl (diagonal) transition for admin: class list -> class page.
+// Old page is cloned and folded along a diagonal line (top-right to bottom-left) over the new page.
+const FLIP_MS=850;
+function flipPoly(poly){return poly.length<3?'polygon(0px 0px,0px 0px,0px 0px)':'polygon('+poly.map(q=>q[0].toFixed(1)+'px '+q[1].toFixed(1)+'px').join(',')+')'}
+// keep the part of a convex polygon where sign*(n.p - d) >= 0 (Sutherland-Hodgman, one edge)
+function flipClip(poly,sign,nx,ny,d){
+  const out=[],f=q=>sign*(nx*q[0]+ny*q[1]-d);
+  for(let i=0;i<poly.length;i++){const A=poly[i],B=poly[(i+1)%poly.length],fa=f(A),fb=f(B);
+    if(fa>=0)out.push(A);
+    if((fa>=0)!==(fb>=0)){const t=fa/(fa-fb);out.push([A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t]);}}
+  return out;
+}
+function flipOpen(name){
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce||!$app){sec=name;stab='tests';home();return}
+  const r0=$app.getBoundingClientRect(),W=innerWidth,H=innerHeight;
+  const nx=Math.SQRT1_2,ny=Math.SQRT1_2,dmax=nx*W+ny*H;
+  const rect=[[0,0],[W,0],[W,H],[0,H]];
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:0;top:0;width:'+W+'px;height:'+H+'px;overflow:hidden;pointer-events:none;z-index:1500';
+  const mk=()=>{const c=$app.cloneNode(true);c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+    c.removeAttribute('id');c.style.cssText='position:absolute;left:'+r0.left+'px;top:'+r0.top+'px;width:'+r0.width+'px;margin:0;box-sizing:border-box;pointer-events:none';return c};
+  const U=document.createElement('div');U.style.cssText='position:absolute;left:0;top:0;width:'+W+'px;height:'+H+'px';U.style.background='radial-gradient(circle at 30% 20%,#c96a2b,#7a3410 70%)';U.appendChild(mk());
+  const F=document.createElement('div');F.style.cssText='position:absolute;left:0;top:0;width:'+W+'px;height:'+H+'px;transform-origin:0 0;will-change:transform';
+  const Fi=document.createElement('div');Fi.style.cssText='position:absolute;left:0;top:0;width:'+W+'px;height:'+H+'px';Fi.style.background='radial-gradient(circle at 30% 20%,#c96a2b,#7a3410 70%)';Fi.appendChild(mk());
+  F.appendChild(Fi);
+  const sh=document.createElement('div');
+  sh.style.cssText='position:absolute;width:44px;transform-origin:0 50%;background:linear-gradient(to right,rgba(0,0,0,.38),rgba(0,0,0,0))';
+  wrap.append(sh,U,F);document.body.appendChild(wrap);
+  const L=Math.hypot(W,H);
+  const setFold=d=>{
+    U.style.clipPath=flipPoly(flipClip(rect,-1,nx,ny,d));
+    Fi.style.clipPath=flipPoly(flipClip(rect,1,nx,ny,d));
+    const a=1-2*nx*nx,b=-2*nx*ny,dd=1-2*ny*ny,e=2*d*nx,f=2*d*ny;
+    F.style.transform='matrix('+a+','+b+','+b+','+dd+','+e+','+f+')';
+    // shadow strip on the base page, starting at the fold line, pointing toward the lifted side
+    const s0=nx*W/2+ny*H/2-d,px=W/2-nx*s0,py=H/2-ny*s0;
+    sh.style.left=px+'px';sh.style.top=(py-L)+'px';sh.style.height=(2*L)+'px';sh.style.transform='rotate(45deg)';
+  };
+  setFold(dmax);
+  // new page renders underneath the old leaf
+  sec=name;stab='tests';home();
+  const t0=performance.now();
+  const step=now=>{
+    const k=Math.min(1,(now-t0)/FLIP_MS);
+    const e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    setFold(dmax*(1-e));
+    if(k<1)requestAnimationFrame(step);else wrap.remove();
+  };
+  requestAnimationFrame(step);
 }
 function notTaken(u){
   const x=rcache.rows.find(r=>r.uid===u),e=document.getElementById('nt');if(!x||!e)return;
