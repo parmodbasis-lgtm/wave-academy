@@ -123,7 +123,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 29-Oct-A</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-A</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 // Tab switch inside a class (Derivations / Formulae): remember the screen we came from, so back returns to it
@@ -980,6 +980,12 @@ function fmt(s){
 }
 const imgQ=q=>q.qi?'<img class="qimg" src="'+q.qi+'" alt="">':'';
 const optHtml=(q,j)=>fmt(q.options[j]||'')+(q.oi&&q.oi[j]?'<img class="oimg" src="'+q.oi[j]+'" alt="">':'');
+const solHtml=s=>{let inner='';if(s.img)inner+='<img class="qimg" src="'+s.img+'" alt="">';
+  if(s.vid){const m=s.vid.match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+    inner+=m?'<div style="position:relative;padding-top:56.25%;margin-top:8px"><iframe data-yt="'+m[1]+'" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>':'<a href="'+esc(s.vid)+'" target="_blank" rel="noopener">▶ Video kholein</a>'}
+  return '<button class="sec" style="margin-top:10px" onclick="toggleSol(this)">💡 Watch solution</button><div style="display:none;margin-top:8px">'+inner+'</div>'};
+function toggleSol(btn){const b=btn.nextElementSibling;const open=b.style.display==='none';b.style.display=open?'block':'none';btn.textContent=open?'🙈 Hide solution':'💡 Watch solution';
+  if(open)b.querySelectorAll('iframe[data-yt]').forEach(f=>{if(!f.src)f.src='https://www.youtube.com/embed/'+f.dataset.yt})}
 function pv(f){const d=document.getElementById('pv_'+f.id);if(d)d.innerHTML=f.value.indexOf('$')>=0?fmt(f.value):''}
 function mk(i){
   const f=lastF;if(!f)return alert('Tap inside a question or option box first.');
@@ -1326,7 +1332,7 @@ async function importDocx(inp){
 function editTest(id){
   const t=tests.find(x=>x.id===id);if(!t)return;impMsg='';aiMsg='';
   const dl=t.deadline?new Date(t.deadline-new Date(t.deadline).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
-  draft={id,pub:t.published===true,title:t.title||'',section:t.section||SECS[0],subject:t.subject||'Science',mins:durMin(t),deadline:dl,qs:t.questions.map(q=>({q:q.q||'',qi:q.qi||'',o:(q.options||['','','','']).slice(0,4),oi:Array.from({length:4},(_,j)=>(q.oi&&q.oi[j])||''),a:q.answer>=0?q.answer:0}))};
+  draft={id,pub:t.published===true,title:t.title||'',section:t.section||SECS[0],subject:t.subject||'Science',mins:durMin(t),deadline:dl,qs:t.questions.map(q=>({q:q.q||'',qi:q.qi||'',o:(q.options||['','','','']).slice(0,4),oi:Array.from({length:4},(_,j)=>(q.oi&&q.oi[j])||''),a:q.answer>=0?q.answer:0,sol:{img:(q.sol&&q.sol.img)||'',vid:(q.sol&&q.sol.vid)||''}}))};
   drawBuilder();
 }
 async function saveEdit(d){
@@ -1344,7 +1350,7 @@ const blankQ=()=>({q:'',qi:'',o:['','','',''],oi:['','','',''],a:0});
 function sync(){
   const g=id=>document.getElementById(id);if(!g('bt'))return;
   draft.title=g('bt').value;draft.mins=+g('bm').value||30;draft.deadline=g('bd').value;draft.section=g('bs').value;if(g('bsub'))draft.subject=g('bsub').value;
-  draft.qs.forEach((x,i)=>{x.q=g('q'+i).value;for(let j=0;j<4;j++)x.o[j]=g('o'+i+'_'+j).value;const r=document.querySelector('input[name=a'+i+']:checked');x.a=r?+r.value:(x.a>=0?x.a:-1)});
+  draft.qs.forEach((x,i)=>{x.q=g('q'+i).value;for(let j=0;j<4;j++)x.o[j]=g('o'+i+'_'+j).value;x.sol=Object.assign({img:'',vid:''},x.sol||{});if(g('sv'+i))x.sol.vid=g('sv'+i).value.trim();const r=document.querySelector('input[name=a'+i+']:checked');x.a=r?+r.value:(x.a>=0?x.a:-1)});
 }
 function drawBuilder(keep){
   const y=window.scrollY;
@@ -1359,7 +1365,7 @@ function drawBuilder(keep){
     <textarea id="q${i}" class="mf" rows="3" oninput="pv(this)" placeholder="Question text (use the math keyboard for equations)">${esc(x.q)}</textarea>
     <div class="pv" id="pv_q${i}">${x.q.indexOf('$')>=0?fmt(x.q):''}</div>${th(x.qi,'q',i,0)}<button class="sec" onclick="addImg('q',${i},0)">🖼 Add image to question</button>`;
     for(let j=0;j<4;j++)o+=`<div class="row" style="margin-top:10px"><input type="radio" name="a${i}" value="${j}" ${x.a===j?'checked':''} onchange="var s=this.closest('.qb').querySelector('.na');if(s)s.remove()"><input type="text" class="mf" style="flex:1;width:auto" id="o${i}_${j}" value="${esc(x.o[j])}" placeholder="Option ${j+1}" oninput="pv(this)"><button class="sec" onclick="addImg('o',${i},${j})">🖼</button></div><div class="pv" id="pv_o${i}_${j}">${x.o[j].indexOf('$')>=0?fmt(x.o[j]):''}</div>${th(x.oi[j],'o',i,j)}`;
-    o+=`<div class="mut">Select the radio button next to the correct answer.</div></div>`;
+    const sl=x.sol||{img:'',vid:''};o+=`<div style="margin-top:12px;border-top:1px dashed #bbb;padding-top:10px"><b>💡 Solution (optional)</b>${sl.img?`<div class="row" style="margin:6px 0"><img class="qimg" src="${sl.img}" alt=""><button class="del" onclick="rmSol(${i})">Remove solution photo</button></div>`:''}<div class="row" style="margin-top:6px"><button class="sec" onclick="addSol(${i})">🖼 Solution photo</button></div><input type="text" class="mf" id="sv${i}" value="${esc(sl.vid||'')}" placeholder="Ya solution video ka YouTube link paste karein"></div><div class="mut">Select the radio button next to the correct answer.</div></div>`;
   });
   o+=`<div class="row"><button class="sec" onclick="addQ()">+ Add question</button>${draft.id?'<button onclick="saveTest(draft.pub)">Save changes</button>':'<button class="sec" onclick="saveTest(false)">Save as draft</button><button onclick="saveTest(true)">Save &amp; publish</button>'}<button class="sec" onclick="home()">Cancel</button></div>`;
   h(o);if(keep)window.scrollTo(0,y);
@@ -1367,6 +1373,13 @@ function drawBuilder(keep){
 function addQ(){sync();draft.qs.push(blankQ());drawBuilder();window.scrollTo(0,document.body.scrollHeight)}
 function rmQ(i){sync();draft.qs.splice(i,1);drawBuilder(true)}
 function rmImg(k,i,j){sync();if(k==='q')draft.qs[i].qi='';else draft.qs[i].oi[j]='';drawBuilder(true)}
+function addSol(i){
+  sync();const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;
+    try{const d=await shrink(f,800);draft.qs[i].sol=Object.assign({img:'',vid:''},draft.qs[i].sol||{},{img:d});drawBuilder(true)}catch(e){alert('Could not read that image.')}};
+  inp.click();
+}
+function rmSol(i){sync();draft.qs[i].sol=Object.assign({img:'',vid:''},draft.qs[i].sol||{},{img:''});drawBuilder(true)}
 function addImg(k,i,j){
   sync();const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
   inp.onchange=async()=>{const f=inp.files[0];if(!f)return;
@@ -1382,7 +1395,7 @@ async function saveTest(pub){
     if(x.a<0)return alert('Select the correct answer for question '+(draft.qs.indexOf(x)+1)+'.');
     for(let j=0;j<4;j++)if(!(x.o[j].trim()||x.oi[j]))return alert('Every option needs text or an image.');
   }
-  const d={title:draft.title.trim(),section:draft.section,subject:isSub(draft.section)?(draft.subject||'Science'):'',mins:draft.mins,published:!!pub,deadline:draft.deadline?new Date(draft.deadline).getTime():0,created:Date.now(),questions:draft.qs.map(x=>({q:x.q.trim(),qi:x.qi||'',options:x.o.map(v=>v.trim()),oi:x.oi.map(v=>v||''),answer:x.a}))};
+  const d={title:draft.title.trim(),section:draft.section,subject:isSub(draft.section)?(draft.subject||'Science'):'',mins:draft.mins,published:!!pub,deadline:draft.deadline?new Date(draft.deadline).getTime():0,created:Date.now(),questions:draft.qs.map(x=>({q:x.q.trim(),qi:x.qi||'',options:x.o.map(v=>v.trim()),oi:x.oi.map(v=>v||''),answer:x.a,...(x.sol&&(x.sol.img||x.sol.vid)?{sol:{img:x.sol.img||'',vid:(x.sol.vid||'').trim()}}:{})}))};
   if(draft.id)return saveEdit(d);
   const parts=[];let cu=[],sz=0;
   for(const qq of d.questions){const l=JSON.stringify(qq).length;if(l>800000)return alert('One question has a picture that is too large.');if(sz+l>800000&&cu.length){parts.push(cu);cu=[];sz=0}cu.push(qq);sz+=l}
@@ -1578,6 +1591,7 @@ function showResult(id,auto,fx){normMine();wmOn=true;
   t.questions.forEach((q,i)=>{
     o+=`<div class="card">${qTag(q,ans[i],times,i)}<b>${i+1}. ${fmt(q.q)}</b>${imgQ(q)}`;
     q.options.forEach((op,j)=>o+=`<div class="opt ${j===q.answer?'right':(j===ans[i]?'wrong':'')}">${optHtml(q,j)}${j===q.answer?' ✓':''}${j===ans[i]&&j!==q.answer?' ✗':''}</div>`);
+    if(q.sol&&(q.sol.img||q.sol.vid))o+=solHtml(q.sol);
     o+=`</div>`;
   });
   h(o+`<button onclick="home()">Back to tests</button>`);if(fx){crackers();scorePop(rec)}
