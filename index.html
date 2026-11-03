@@ -123,7 +123,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
   w.style.backgroundImage='url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
 }
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
-const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-A</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-B</div>';window.scrollTo(0,0);fitWT();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 // Tab switch inside a class (Derivations / Formulae): remember the screen we came from, so back returns to it
@@ -176,7 +176,7 @@ let bnGen=false;
 const bnT=()=>{const sc=bnSec();return bnGen||!sc?'Science, Maths &amp; Physics<br>By '+TNAME:isSub(sc)?'Science &amp; Maths<br>By '+TNAME:'Physics By '+TNAME};
 const bnS=()=>{const sc=bnSec();return bnGen||!sc?'CBSE | JEE &amp; NEET':isSub(sc)?'CBSE | JEE &amp; NEET Foundation':'CBSE / NEET / JEE Mains'};
 const bannerFull=()=>`<div class="p3d"><div class="row" style="gap:14px;margin:0;flex-wrap:nowrap;align-items:center"><div style="flex:none;width:93px;text-align:center"><img class="tav" src="${TEACHER}" alt="" width="93" height="93"><div class="mut" style="font-size:11.55px;font-weight:700;margin-top:11.5px">Founder</div></div><div style="line-height:1.3;min-width:0;text-align:center"><div class="tt">${bnT()}</div><div class="mut bsub" style="font-size:14px;font-weight:600;margin-top:3px">${bnS()}</div><span class="tbd">15 + Years of Experience</span></div></div><div class="tgl">Conceptual learning <span class="arw">➜</span> Daily practice <span class="arw">➜</span> Everything is possible 💡</div>${!bnGen&&CLSLINE[bnSec()]?`<div class="cln">${arw(CLSLINE[bnSec()])}</div>`:''}</div><div class="idl"><div class="mut" style="font-weight:700;margin:0 0 6px"><span class="bulb">💡</span> The Minds That Inspire Me <span class="bulb" style="animation-delay:.9s">💡</span></div><div style="display:flex;gap:10px;flex-wrap:nowrap;padding:8px 0">${PHYS.map((x,ix)=>`<div class="ic" onclick="idol(${ix},this)" style="text-align:center;flex:1 1 0;min-width:0;max-width:92px">${x[2]?`<img src="${x[2]}" alt="" style="display:block;width:100%;aspect-ratio:1/1;border-radius:50%;object-fit:cover">`:`<div class="ph" style="width:100%;aspect-ratio:1/1;border-radius:50%;background:${x[1]};color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(x[0].replace(/[^A-Z]/g,'').slice(0,2)||x[0][0])}</div>`}<div class="mut" style="font-size:11px;margin-top:3px;line-height:1.25">${esc(x[0])}</div>${IDSUB[x[0]]?`<div class="isub">${IDSUB[x[0]]}</div>`:''}</div>`).join('')}</div><div id="ib" class="ib"></div></div>`;
-let myEmail='',myClass='',mySec='',myExtra=[],stab='tests',stuOpen=false,subj='Science';const mySecs=()=>[mySec].concat(myExtra.filter(x=>x&&x!==mySec));
+let myEmail='',myClass='',mySec='',myExtra=[],stab='tests',stuOpen=false,subj='Science',dppMode=null;const mySecs=()=>[mySec].concat(myExtra.filter(x=>x&&x!==mySec));
 const CLS={IX:'Class IX',X:'Class X',XI:'Physics XI',XII:'Physics XII'};
 const banner=nm=>{bnGen=!!nm;const r=bannerFull();bnGen=false;return nm?r.split('<div class="idl">')[0]:r};
 const logoTop=()=>`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1></div></div>${banner(true)}`;
@@ -564,6 +564,7 @@ function stuTC(t){
     return `<div class="card"><div class="row sp"><div><h2>${numTxt(t)?'<span style="color:var(--ac)">'+numTxt(t)+'</span> · ':''}${esc(t.title)}${bd}</h2><div class="mut">${info}</div>${a&&(!done||rt)?`<div class="mut">⏸ Paused · ${clk(a.remaining)} left</div>`:''}${all.length>1?`<div class="mut" style="margin-top:4px">${all.map((r,i)=>'Attempt '+(i+1)+': '+r.score+'/'+r.total).join(' · ')}</div>`:''}${rt?`<div style="margin-top:4px;color:var(--ac)">🔁 Your teacher has reassigned this test</div>`:''}</div>
     <div class="row">${done?`<b>${done.score}/${done.total}</b>${all.length>1?all.map((r,i)=>`<button onclick="showReview('${t.id}','',${i})">Attempt ${i+1}</button>`).join(''):''}${rt?`<button onclick="start('${t.id}')">${a?'Resume':'🔁 Retake'}</button>`:''}`:(a?`<button onclick="start('${t.id}')">Resume</button>`:(over(t)?`<b style="color:var(--bad)">Time Over!!!</b>`:`<button onclick="start('${t.id}')">Start</button>`))}</div>${done&&all.length<=1?`<button onclick="showReview('${t.id}')" style="width:100%;margin-top:10px">📖 View answers</button>`:''}</div></div>`;
 }
+const dppCard=t=>{const done=mine[t.id],a=att[t.id];return `<div class="card"><h2 style="margin:0">${esc(t.title)}</h2><div class="mut" style="margin-top:6px">Concept : ${esc(t.concept||'-')}</div><div class="mut">Date : ${dppDate(t.dday)}</div><div class="mut">No. of Questions : ${String(t.questions.length).padStart(2,'0')}</div>${done?`<div style="margin-top:6px"><b>Score : ${done.score}/${done.total}</b></div>`:''}<div class="row" style="margin-top:10px">${done?`<button onclick="showReview('${t.id}')">📖 View answers</button>`:`<button onclick="start('${t.id}')">${a?'Resume':'Start'}</button>`}</div></div>`};
 const disSet=()=>{try{return JSON.parse(localStorage.getItem('wa_dis')||'[]')}catch(e){return []}};
 function disNote(id){try{const a=disSet();a.push(id);localStorage.setItem('wa_dis',JSON.stringify(a.slice(-50)))}catch(e){}home()}
 const noteBox=()=>{if(isTeacher)return '';const dis=disSet();return tests.filter(t=>t.publishAt>0&&pubNow(t)&&!mine[t.id]&&!over(t)&&!dis.includes(t.id)).map(t=>`<div class="card" style="border-color:#e0aa00"><div class="row sp" style="flex-wrap:nowrap"><div><b>📣 New test available</b><div>${esc(t.title)}</div><div class="mut">${t.deadline?'Open until '+new Date(t.deadline).toLocaleString():''}</div></div><div style="display:flex;gap:6px;flex-shrink:0"><button onclick="start('${t.id}')">Start</button><button class="sec" onclick="disNote('${t.id}')">✕</button></div></div></div>`).join('')};
@@ -580,7 +581,7 @@ function home(){normMine();wmOn=false;
   const hd=`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1></div></div>`;
   if(!isTeacher&&!stuOpen&&mySecs().length===1){sec=mySecs()[0];stuOpen=true}
   if(!isTeacher&&!stuOpen){
-    return h(hd+banner()+noteBox()+stuCard()+asgBox()+'<p class="mut">Choose a section.</p>'+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
+    return h(hd+banner()+noteBox()+stuCard()+asgBox()+'<p class="mut">Choose a section.</p>'+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;dppMode=null;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
   }
   if(sec===null){
     let o=hd+banner();
@@ -590,13 +591,14 @@ function home(){normMine();wmOn=false;
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:${isVidSec(sec)&&isTeacher?11:14}px" onclick="setTab('${k}')">${l}</button>`;
   let o=isTeacher?`<div class="row" style="margin:12px 0 10px;flex-wrap:nowrap;align-items:center;gap:12px"><img src="${LOGO}" alt="" width="62" height="62" style="border-radius:50%;flex:none;box-shadow:0 3px 8px rgba(0,0,0,.5)"><h2 style="margin:0;min-width:0;flex:1;font-size:min(28.8px,6vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sec)}</h2><button onclick="stab=stab==='stu'?'tests':'stu';home()" aria-label="Students" style="flex:none;width:51px;height:51px;border-radius:50%;padding:0;margin:0 0 0 auto;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7f9fff,#2f54c9 55%,#0d1f5c);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45)"><svg width="29" height="29" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="#ffffff"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="#ffffff"/><circle cx="17" cy="9" r="2.8" fill="#ffffff"/><path d="M16 14.2c3.2 0 5.5 1.9 5.5 5.3h-4.2" fill="#ffffff"/></svg></button><button onclick="sec=null;home()" aria-label="Home" style="flex:none;width:51px;height:51px;border-radius:50%;padding:0;margin:0 0 0 12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7f9fff,#2f54c9 55%,#0d1f5c);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45)"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z" fill="#ffffff"/></svg></button></div>`:hd+banner();
   if(isTeacher){if(isVidSec(sec))o+=`<div class="tabg" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:4px 0 10px">${tb('vid','🎬 Derivations')}${tb('fm','📐 Formulae')}</div>`;}
-  else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button><button style="width:100%" onclick="fmStudent()">📐 Formulae</button>':''}<button class="sec" style="width:100%;${isVidSec(sec)?'grid-column:1/-1':''}" onclick="progress()">📊 My progress</button></div>`}
+  else{const one=mySecs().length<2;o+=noteBox()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;dppMode=null;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div><div style="display:grid;grid-template-columns:${isVidSec(sec)?'1fr 1fr':'1fr'};gap:8px;margin:10px 0 6px">${isVidSec(sec)?'<button style="width:100%" onclick="lecStudent()">🎬 Video lectures</button><button style="width:100%" onclick="fmStudent()">📐 Formulae</button>':''}<button class="sec" style="width:100%;${isVidSec(sec)?'grid-column:1/-1':''}" onclick="progress()">📊 My progress</button></div>`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   if(isTeacher&&stab==='fm'&&isVidSec(sec))return fmAdminIn(o);
-  o+=subTabs();
-  if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`;
-  const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))));
+  if(dppOn()&&!dppMode){const dn=tests.filter(t=>(t.section||'Other')===sec&&t.dpp&&pubNow(t)).length,wn=tests.filter(t=>(t.section||'Other')===sec&&!t.dpp&&pubNow(t)).length;return h(o+`<div class="card opt" style="display:block" onclick="dppMode='dpp';home()"><h2 style="margin:0">📘 DPP</h2><p class="mut" style="margin:4px 0 0">Hamesha open · koi time limit nahi · ${dn} DPP</p></div><div class="card opt" style="display:block" onclick="dppMode='weekly';home()"><h2 style="margin:0">📝 Weekly Tests</h2><p class="mut" style="margin:4px 0 0">Timer aur deadline ke saath · ${wn} tests</p></div>`+lob())}
+  o+=(dppOn()?'<button class="sec" style="margin-bottom:8px" onclick="dppMode=null;home()">← Back</button>':'')+subTabs();
+  if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`+(/XI|XII/.test(sec||'')?`<button class="gold" style="width:100%;padding:13px;margin-top:8px" onclick="builder(true)">+ Create new DPP</button>`:'');
+  const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))&&(!dppOn()||(dppMode==='dpp')===!!t.dpp)));
   if(!ts.length)o+=`<div class="card mut">No tests in ${isSub(sec)?esc(subj)+' ':'this section '}yet.</div>`;
   ts.forEach(t=>{
     const done=mine[t.id],pub=pubNow(t),a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
@@ -604,11 +606,11 @@ function home(){normMine();wmOn=false;
     const info=`<div>No. of Questions : ${String(t.questions.length).padStart(2,'0')}</div><div>Duration : ${durMin(t)} min</div>`,dl=`<div class="mut" style="margin-top:0">Deadline : ${t.deadline?fd(t.deadline):'none'}</div>`;
     if(isTeacher){
       const dr=!pub&&!(t.publishAt>0),tn=dr?'':numTxt(t);
-      o+=`<div class="card" style="${dr?'':'cursor:pointer;'}position:relative"${dr?'':` onclick="results('${t.id}')"`}>${tn?`<span style="position:absolute;top:6px;right:12px;font-size:11px;font-weight:700;color:var(--ac);letter-spacing:.3px">${tn}</span>`:''}<div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div></div></div>${dl}<div style="margin-top:${dr?0:6}px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+fd(t.publishAt)+'</span>':''}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div>
+      o+=`<div class="card" style="${dr?'':'cursor:pointer;'}position:relative"${dr?'':` onclick="results('${t.id}')"`}>${tn?`<span style="position:absolute;top:6px;right:12px;font-size:11px;font-weight:700;color:var(--ac);letter-spacing:.3px">${tn}</span>`:''}<div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${t.dpp?'📘 DPP · ':''}${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div></div></div>${dl}<div style="margin-top:${dr?0:6}px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+fd(t.publishAt)+'</span>':''}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div>
       <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="confirmDel('${t.id}')">Delete</button><button class="bl" onclick="paperPdf('${t.id}',false)">Question Paper</button><button class="bl" onclick="paperPdf('${t.id}',true)">Answer Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button>${dr?'<button class="bl" style="grid-column:1/-1;cursor:default">Draft</button>':'<button class="bl" style="grid-column:1/-1" onclick="results(\''+t.id+'\')">📊 Result</button>'}</div></div>`;
       return;
     }
-    o+=stuTC(t);
+    o+=t.dpp?dppCard(t):stuTC(t);
   });
   h(o+lob());
 }
@@ -1332,7 +1334,7 @@ async function importDocx(inp){
 function editTest(id){
   const t=tests.find(x=>x.id===id);if(!t)return;impMsg='';aiMsg='';
   const dl=t.deadline?new Date(t.deadline-new Date(t.deadline).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
-  draft={id,pub:t.published===true,title:t.title||'',section:t.section||SECS[0],subject:t.subject||'Science',mins:durMin(t),deadline:dl,qs:t.questions.map(q=>({q:q.q||'',qi:q.qi||'',o:(q.options||['','','','']).slice(0,4),oi:Array.from({length:4},(_,j)=>(q.oi&&q.oi[j])||''),a:q.answer>=0?q.answer:0,sol:{img:(q.sol&&q.sol.img)||'',vid:(q.sol&&q.sol.vid)||''}}))};
+  draft={id,pub:t.published===true,title:t.title||'',section:t.section||SECS[0],subject:t.subject||'Science',mins:durMin(t),deadline:dl,dpp:!!t.dpp,concept:t.concept||'',date:t.dday?new Date(t.dday-new Date(t.dday).getTimezoneOffset()*60000).toISOString().slice(0,10):'',qs:t.questions.map(q=>({q:q.q||'',qi:q.qi||'',o:(q.options||['','','','']).slice(0,4),oi:Array.from({length:4},(_,j)=>(q.oi&&q.oi[j])||''),a:q.answer>=0?q.answer:0,sol:{img:(q.sol&&q.sol.img)||'',vid:(q.sol&&q.sol.vid)||''}}))};
   drawBuilder();
 }
 async function saveEdit(d){
@@ -1341,25 +1343,25 @@ async function saveEdit(d){
   try{
     const r=await db.collection('results').where('testId','==',draft.id).get();
     if(r.docs.length&&!confirm(r.docs.length+' student(s) have already taken this test. Their marks will be recalculated automatically with the updated correct answers. Save changes?'))return;
-    await db.collection('tests').doc(draft.id).update({title:d.title,section:d.section,subject:d.subject,mins:d.mins,deadline:d.deadline,questions:d.questions});
+    await db.collection('tests').doc(draft.id).update({title:d.title,section:d.section,subject:d.subject,mins:d.mins,deadline:d.deadline,questions:d.questions,dpp:!!d.dpp,concept:d.concept||'',dday:d.dday||0});
     draft=null;home();alert('Test updated.');
   }catch(e){alert('Could not save: '+(e.message||e))}
 }
-function builder(){impMsg='';aiMsg='';draft={title:'',section:sec||SECS[0],subject:subj,mins:30,deadline:'',qs:[blankQ()]};drawBuilder()}
+function builder(dpp){impMsg='';aiMsg='';draft={title:'',section:sec||SECS[0],subject:subj,mins:30,deadline:'',dpp:!!dpp,concept:'',date:'',qs:[blankQ()]};drawBuilder()}
 const blankQ=()=>({q:'',qi:'',o:['','','',''],oi:['','','',''],a:0});
 function sync(){
   const g=id=>document.getElementById(id);if(!g('bt'))return;
-  draft.title=g('bt').value;draft.mins=+g('bm').value||30;draft.deadline=g('bd').value;draft.section=g('bs').value;if(g('bsub'))draft.subject=g('bsub').value;
+  draft.title=g('bt').value;if(g('bm'))draft.mins=+g('bm').value||30;if(g('bd'))draft.deadline=g('bd').value;if(g('bc'))draft.concept=g('bc').value;if(g('bdt'))draft.date=g('bdt').value;draft.section=g('bs').value;if(g('bsub'))draft.subject=g('bsub').value;
   draft.qs.forEach((x,i)=>{x.q=g('q'+i).value;for(let j=0;j<4;j++)x.o[j]=g('o'+i+'_'+j).value;x.sol=Object.assign({img:'',vid:''},x.sol||{});if(g('sv'+i))x.sol.vid=g('sv'+i).value.trim();const r=document.querySelector('input[name=a'+i+']:checked');x.a=r?+r.value:(x.a>=0?x.a:-1)});
 }
 function drawBuilder(keep){
   const y=window.scrollY;
   const th=(src,k,i,j)=>src?`<div class="row" style="margin:6px 0"><img class="${k==='q'?'qimg':'oimg'}" src="${src}" alt=""><button class="del" onclick="rmImg('${k}',${i},${j})">Remove image</button></div>`:'';
-  let o=`<h1>${draft.id?'Edit test':'New test'}</h1>${mkBar()}${aiCard()}${impCard()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
+  let o=`<h1>${draft.dpp?(draft.id?'Edit DPP':'New DPP'):(draft.id?'Edit test':'New test')}</h1>${mkBar()}${aiCard()}${impCard()}<div class="card"><label class="mut">Title</label><input type="text" id="bt" value="${esc(draft.title)}" placeholder="e.g. Chapter 3 Quiz">
   <label class="mut">Section</label><select id="bs" onchange="sync();drawBuilder(true)">${SECS.map(s=>`<option ${draft.section===s?'selected':''}>${s}</option>`).join('')}</select>
   ${isSub(draft.section)?`<label class="mut">Subject</label><select id="bsub"><option ${draft.subject!=='Maths'?'selected':''}>Science</option><option ${draft.subject==='Maths'?'selected':''}>Maths</option></select>`:''}
-  <label class="mut">Total time for the whole test (minutes)</label><input type="number" id="bm" min="1" value="${draft.mins}">
-  <label class="mut">Available until (optional)</label><input type="datetime-local" id="bd" value="${esc(draft.deadline)}"></div>`;
+  ${draft.dpp?`<label class="mut">Concept</label><input type="text" id="bc" value="${esc(draft.concept||'')}" placeholder="e.g. Coulomb's Law"><label class="mut">Date</label><input type="date" id="bdt" value="${esc(draft.date||'')}"></div>`:`<label class="mut">Total time for the whole test (minutes)</label><input type="number" id="bm" min="1" value="${draft.mins}">
+  <label class="mut">Available until (optional)</label><input type="datetime-local" id="bd" value="${esc(draft.deadline)}"></div>`}`;
   draft.qs.forEach((x,i)=>{
     o+=`<div class="qb"><div class="row sp"><b>Question ${i+1}</b>${x.a<0?'<span class="na" style="color:var(--bad);font-size:13px"> ⚠ Select the correct answer</span>':''}${draft.qs.length>1?`<button class="del" onclick="rmQ(${i})">Remove</button>`:''}</div>
     <textarea id="q${i}" class="mf" rows="3" oninput="pv(this)" placeholder="Question text (use the math keyboard for equations)">${esc(x.q)}</textarea>
@@ -1396,6 +1398,7 @@ async function saveTest(pub){
     for(let j=0;j<4;j++)if(!(x.o[j].trim()||x.oi[j]))return alert('Every option needs text or an image.');
   }
   const d={title:draft.title.trim(),section:draft.section,subject:isSub(draft.section)?(draft.subject||'Science'):'',mins:draft.mins,published:!!pub,deadline:draft.deadline?new Date(draft.deadline).getTime():0,created:Date.now(),questions:draft.qs.map(x=>({q:x.q.trim(),qi:x.qi||'',options:x.o.map(v=>v.trim()),oi:x.oi.map(v=>v||''),answer:x.a,...(x.sol&&(x.sol.img||x.sol.vid)?{sol:{img:x.sol.img||'',vid:(x.sol.vid||'').trim()}}:{})}))};
+  if(draft.dpp){d.dpp=true;d.concept=(draft.concept||'').trim();d.dday=draft.date?new Date(draft.date+'T00:00').getTime():0;d.mins=0;d.deadline=0}
   if(draft.id)return saveEdit(d);
   const parts=[];let cu=[],sz=0;
   for(const qq of d.questions){const l=JSON.stringify(qq).length;if(l>800000)return alert('One question has a picture that is too large.');if(sz+l>800000&&cu.length){parts.push(cu);cu=[];sz=0}cu.push(qq);sz+=l}
@@ -1439,16 +1442,18 @@ const canRetake=id=>!!mineAll[id]&&(allowed[id]||1)>mineAll[id].length;
 const hasNeg=t=>t.section==='Physics XI'||t.section==='Physics XII';
 const brk=(t,rec)=>{if(!rec.mk)return '';const an=rec.answers||[];let c=0,w=0,s=0;t.questions.forEach((q,i)=>{const a=an[i];if(a==null||a<0)s++;else if(a===q.answer)c++;else w++});return `<div class="card mut" style="text-align:center">${c} correct × (+4) = <b>+${4*c}</b><br>${w} wrong × (−1) = <b>−${w}</b><br>${s} unattempted × 0 = <b>0</b></div>`};
 const clk=ms=>{const s=Math.max(0,Math.ceil(ms/1000)),hr=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (hr?hr+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')};
+const dppOn=()=>!isTeacher&&/XI|XII/.test(sec||'');
+const dppDate=ms=>ms?new Date(ms).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'-';
 const durMin=t=>t.mins||Math.max(1,Math.round((t.secs||30)*t.questions.length/60));
 function start(id){
   const t=tests.find(x=>x.id===id);if(!t)return;if(locked(t))return toast('This test has not started yet');if(mine[id]&&!canRetake(id))return home();
   const a=att[id];if(over(t)&&!a&&!canRetake(id))return timeOver();
-  h(`<h1>${esc(t.title)}${mineAll[id]?' – Attempt '+(mineAll[id].length+1):''}</h1><div class="card"><p>${t.questions.length} questions · <b>${durMin(t)} minutes</b> in total.</p><ul style="padding-left:18px;line-height:1.7">${hasNeg(t)?'<li><b>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted questions.</b> Total marks: '+4*t.questions.length+'.</li>':''}<li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
+  h(`<h1>${esc(t.title)}${mineAll[id]?' – Attempt '+(mineAll[id].length+1):''}</h1><div class="card"><p>${t.questions.length} questions · ${t.dpp?'<b>No time limit</b>':'<b>'+durMin(t)+' minutes</b> in total'}.</p><ul style="padding-left:18px;line-height:1.7">${hasNeg(t)?'<li><b>Marking: +4 for each correct answer, −1 for each wrong answer, 0 for unattempted questions.</b> Total marks: '+4*t.questions.length+'.</li>':''}<li>You can skip a question and come back to it later.</li><li>Correct answers are shown only after you submit.</li><li>If the app closes or the phone switches off, your timer stops and continues from the same point when you open the test again.</li></ul>${a?`<p><b>You have ${clk(a.remaining)} left.</b></p>`:''}<button onclick="begin('${id}')">${a?'Resume test':'Begin'}</button> <button class="sec" onclick="home()">Back</button></div>`);
 }
 function begin(id){
   const t=tests.find(x=>x.id===id);if(!t)return;if(locked(t))return home();
   const a=att[id],n=t.questions.length;if(a&&a.left>0){autoLeft();return}if(mine[id]&&!canRetake(id))return home();if(over(t)&&!a&&!canRetake(id))return timeOver();
-  cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:durMin(t)*60000,last:Date.now(),saved:0};
+  cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:(t.dpp?1e9:durMin(t)*60000),last:Date.now(),saved:0};
   document.addEventListener('visibilitychange',onVis);window.addEventListener('pagehide',onHide);
   drawTest();clearInterval(timer);timer=setInterval(tick,1000);saveAttempt();
 }
@@ -1488,7 +1493,7 @@ function tick(){
   if(document.visibilityState==='visible'){const dt=Math.min(Math.max(now-cur.last,0),3000);cur.rem-=dt;if(cur.screen==='q')cur.times[cur.i]+=dt}
   cur.last=now;
   const el=document.getElementById('tm');
-  if(el){el.textContent='⏱ '+clk(cur.rem)+' left';el.style.color=cur.rem<=60000?'var(--bad)':''}
+  if(el){if(cur.t.dpp){el.textContent='📘 No time limit';el.style.color=''}else{el.textContent='⏱ '+clk(cur.rem)+' left';el.style.color=cur.rem<=60000?'var(--bad)':''}}
   if(cur.rem<=0)return submit(true);
   if(now-cur.saved>30000)saveAttempt();
 }
