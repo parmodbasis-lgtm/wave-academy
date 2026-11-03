@@ -133,7 +133,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
 const barHtml=()=>`<div style="position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;padding:8px 6px;margin:0 -4px 8px;background:rgba(40,12,0,.8);border-bottom:1px solid rgba(255,226,122,.35)"><img src="${SLOGO}" alt="" width="38" height="38" style="border-radius:50%;background:#fff;flex:none"><b style="font-family:Georgia,serif;color:#ffe27a;font-size:17px;white-space:nowrap">The Wave Academy</b></div>`;
 const fitHdr=()=>document.querySelectorAll('.hdrt').forEach(e=>{let f=30;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>14){f-=1;e.style.fontSize=f+'px'}});
-const h=(html)=>{$app.innerHTML=(uid&&isTeacher?barHtml():'')+html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-K</div>';window.scrollTo(0,0);fitWT();fitHdr();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=('')+html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-M</div>';window.scrollTo(0,0);fitWT();fitHdr();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 // Tab switch inside a class (Derivations / Formulae): remember the screen we came from, so back returns to it
@@ -600,7 +600,7 @@ function home(){normMine();wmOn=false;
   if(!isTeacher&&!mySecs().includes(sec))sec=mySec;
   const hdBig=`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1></div></div>`;
   const hdTop=`<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.92);border-radius:16px;padding:8px 14px;margin:8px 0;box-shadow:0 4px 12px rgba(0,0,0,.3);border:2px solid #e0a100;width:100%;box-sizing:border-box"><img src="${SLOGO}" alt="" width="50" height="50" style="border-radius:50%;flex:none;background:#fff"><b class="hdrt" style="font-family:Georgia,serif;font-size:30px;line-height:1.1;color:#b34700;white-space:nowrap;flex:1;min-width:0;overflow:hidden">The Wave Academy</b></div>`;
-  const hd=isTeacher?hdBig:hdTop;
+  const hd=hdTop;
   if(!isTeacher&&!stuOpen&&mySecs().length===1){sec=mySecs()[0];stuOpen=true}
   if(!isTeacher&&expiredMode){return h(hd+expiredCard()+tests.filter(t=>mine[t.id]).map(t=>t.dpp?dppCard(t):stuTC(t)).join('')+lob())}
   if(!isTeacher&&!stuOpen){
@@ -613,16 +613,18 @@ function home(){normMine();wmOn=false;
   }
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:${isVidSec(sec)&&isTeacher?11:14}px" onclick="setTab('${k}')">${l}</button>`;
   let o=isTeacher?`<div class="row" style="margin:12px 0 10px;flex-wrap:nowrap;align-items:center;gap:12px"><img src="${LOGO}" alt="" width="62" height="62" style="border-radius:50%;flex:none;box-shadow:0 3px 8px rgba(0,0,0,.5)"><h2 style="margin:0;min-width:0;flex:1;font-size:min(28.8px,6vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sec)}</h2><button onclick="stab=stab==='stu'?'tests':'stu';home()" aria-label="Students" style="flex:none;width:51px;height:51px;border-radius:50%;padding:0;margin:0 0 0 auto;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7f9fff,#2f54c9 55%,#0d1f5c);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45)"><svg width="29" height="29" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="#ffffff"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="#ffffff"/><circle cx="17" cy="9" r="2.8" fill="#ffffff"/><path d="M16 14.2c3.2 0 5.5 1.9 5.5 5.3h-4.2" fill="#ffffff"/></svg></button><button onclick="sec=null;home()" aria-label="Home" style="flex:none;width:51px;height:51px;border-radius:50%;padding:0;margin:0 0 0 12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7f9fff,#2f54c9 55%,#0d1f5c);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45)"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z" fill="#ffffff"/></svg></button></div>`:(dppOn()&&dppMode?hd:hd+banner());
-  if(isTeacher){if(isVidSec(sec))o+=`<div class="tabg" style="display:grid;grid-template-columns:1fr;gap:6px;margin:4px 0 10px">${tb('notes','📚 Notes')}</div>`;}
+  if(isTeacher){if(isVidSec(sec)){if(stab==='menu')return h(o+xiMenu());if(['tests','dpp'].includes(stab))o+=xiBack();}}
   else{const one=mySecs().length<2;o+=noteBox()+expiryNote()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;dppMode=null;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}${dppOn()&&dppMode?'':`<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div>`}`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   if(isTeacher&&stab==='fm'&&isVidSec(sec))return fmAdminIn(o);
   if(isTeacher&&stab==='notes'&&isVidSec(sec))return notesAdminIn();
+  if(isTeacher&&stab==='der'&&isVidSec(sec)){nt.sub='der';return notesAdminIn();}
   if(dppOn()&&!dppMode){const dn=tests.filter(t=>(t.section||'Other')===sec&&t.dpp&&pubNow(t)).length,wn=tests.filter(t=>(t.section||'Other')===sec&&!t.dpp&&pubNow(t)).length;const cd=isTeacher||myAcc.dpp!==false,cw=isTeacher||myAcc.tests!==false,cn=myAcc.notes!==false;const card=(fn,t,pp)=>`<div class="card opt" style="display:block" onclick="${fn}"><h2 style="margin:0">${t}</h2><p class="mut" style="margin:4px 0 0">${pp}</p></div>`;let L='';if(cn)L+=card("notesStudent()",'📚 Notes','Derivations and Concepts');if(cd)L+=card("dppMode='dpp';home()",'📘 DPP',`Always open · no time limit · ${dn} DPP`);if(cw)L+=card("dppMode='weekly';home()",'📝 Weekly Tests',`With timer and deadline · ${wn} tests`);L+=card('progress()','📊 My progress','Your scores and report');return h(o+L+lob())}
   o+=(dppOn()?'<button class="sec" style="margin-bottom:8px" onclick="dppMode=null;home()">← Back</button>':'')+subTabs();
-  if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`+(/XI|XII/.test(sec||'')?`<button class="gold" style="width:100%;padding:13px;margin-top:8px" onclick="builder(true)">+ Create new DPP</button>`:'');
-  const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))&&(!dppOn()||(dppMode==='dpp')===!!t.dpp)&&(isTeacher||(t.dpp?myAcc.dpp!==false:myAcc.tests!==false))));
+  if(isTeacher&&isVidSec(sec))o+=stab==='dpp'?`<button class="gold" style="width:100%;padding:13px" onclick="builder(true)">+ Create new DPP</button>`:`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`;
+  else if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`+(/XI|XII/.test(sec||'')?`<button class="gold" style="width:100%;padding:13px;margin-top:8px" onclick="builder(true)">+ Create new DPP</button>`:'');
+  const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))&&(!dppOn()||(dppMode==='dpp')===!!t.dpp)&&(isTeacher||(t.dpp?myAcc.dpp!==false:myAcc.tests!==false))&&(!(isTeacher&&isVidSec(sec))||(stab==='dpp')===!!t.dpp)));
   if(!ts.length)o+=`<div class="card mut">No tests in ${isSub(sec)?esc(subj)+' ':'this section '}yet.</div>`;
   ts.forEach(t=>{
     const done=mine[t.id],pub=pubNow(t),a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
@@ -757,12 +759,15 @@ async function notesAdminIn(){
   try{await notesAdminLoad();nt.loaded=true}catch(e){return h('<div class="card">Could not load notes: '+esc(e.message||e)+'</div><button class="sec" onclick="home()">Back</button>')}
   notesAdminRender();
 }
+const xiTabs=()=>{const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:14px" onclick="setTab('${k}')">${l}</button>`;return `<div class="tabg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 12px">${tb('tests','📝 Tests')}${tb('dpp','📘 DPP')}${tb('der','✍️ Derivations')}${tb('notes','📚 Notes')}</div>`};
+const xiMenu=()=>`<div style="display:flex;flex-direction:column;gap:12px;margin:14px 0">${[['tests','📝 Tests'],['dpp','📘 DPP'],['notes','📚 Notes'],['der','✍️ Derivations']].map(a=>`<button class="gold" style="width:100%;padding:16px;font-size:18px" onclick="setTab('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
+const xiBack=()=>`<button class="sec" style="margin-bottom:8px" onclick="stab='menu';home()">← Back</button>`;
 function notesAdminRender(){
   const e=nt.edit;
   if(e&&e.kind==='der')return ntScroll(()=>h(derEditorHtml(e)));
   if(e&&e.kind==='con')return ntScroll(()=>h(conEditorHtml(e)));
   const L=nt.sub==='der'?nt.ders:nt.cons;
-  let o=`<button class="sec" onclick="sec=null;home()">← Back</button><h1 style="margin-top:12px">📚 Notes</h1><p class="mut">${esc(sec)}</p>${ntTabs(true)}`;
+  let o=(isTeacher&&isVidSec(sec)?xiBack():'')+`<button class="sec" onclick="sec=null;home()">← Back</button><h1 style="margin-top:12px">📚 Notes</h1><p class="mut">${esc(sec)}</p>${ntTabs(true)}`;
   o+=`<button class="gold" style="width:100%;padding:13px;margin-bottom:10px" onclick="ntNew()">${nt.sub==='der'?'+ Add derivation':'+ Add concept'}</button>`;
   if(!L.length)o+=`<div class="card mut">No ${nt.sub==='der'?'derivations':'concepts'} yet.</div>`;
   L.forEach(x=>{
@@ -2032,7 +2037,7 @@ function flipClip(poly,sign,nx,ny,d){
 }
 function flipOpen(name){
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduce||!$app){sec=name;stab='tests';home();return}
+  if(reduce||!$app){sec=name;stab='menu';home();return}
   const r0=$app.getBoundingClientRect(),W=innerWidth,H=innerHeight;
   const nx=Math.SQRT1_2,ny=Math.SQRT1_2,dmax=nx*W+ny*H;
   const rect=[[0,0],[W,0],[W,H],[0,H]];
@@ -2059,7 +2064,7 @@ function flipOpen(name){
   };
   setFold(dmax);
   // new page renders underneath the old leaf
-  sec=name;stab='tests';home();
+  sec=name;stab='menu';home();
   const t0=performance.now();
   const step=now=>{
     const k=Math.min(1,(now-t0)/FLIP_MS);
