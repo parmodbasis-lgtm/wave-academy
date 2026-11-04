@@ -133,7 +133,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
 const barHtml=()=>`<div style="position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;padding:8px 6px;margin:0 -4px 8px;background:rgba(40,12,0,.8);border-bottom:1px solid rgba(255,226,122,.35)"><img src="${SLOGO}" alt="" width="38" height="38" style="border-radius:50%;background:#fff;flex:none"><b style="font-family:Georgia,serif;color:#ffe27a;font-size:17px;white-space:nowrap">The Wave Academy</b></div>`;
 const fitHdr=()=>document.querySelectorAll('.hdrt').forEach(e=>{let f=30;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>14){f-=1;e.style.fontSize=f+'px'}});
-const h=(html)=>{$app.innerHTML=('')+html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-N</div>';window.scrollTo(0,0);fitWT();fitHdr();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=('')+html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-O</div>';window.scrollTo(0,0);fitWT();fitHdr();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 // Tab switch inside a class (Derivations / Formulae): remember the screen we came from, so back returns to it
@@ -772,7 +772,7 @@ function notesAdminRender(){
   if(!L.length)o+=`<div class="card mut">No ${nt.sub==='der'?'derivations':'concepts'} yet.</div>`;
   L.forEach(x=>{
     const meta=nt.sub==='der'?[x.yt?'🎬 YouTube':'',x.pages?'✍️ '+x.pages+' page(s)':''].filter(Boolean).join(' · '):(x.video?'🎬 Video link':'');
-    o+=`<div class="card"><div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><b>${esc(x.title)}</b><div class="mut">${meta||'No content yet'}</div><div style="margin-top:4px;font-size:13px;color:${x.published?'var(--ok)':'var(--mut,#888)'}">${x.published?'● Published':'Draft'}</div></div></div><div class="g3" style="margin-top:10px"><button class="bl" onclick="ntEdit('${x.id}')">✏️ Edit</button><button class="bl" onclick="ntPub('${x.id}',${!x.published})">${x.published?'Unpublish':'Publish'}</button><button class="bl" onclick="ntDel('${x.id}')">Delete</button></div></div>`;
+    o+=`<div class="card"><div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><b>${esc(x.title)}</b><div class="mut">${x.chapter?'📖 '+esc(x.chapter)+(meta?' · ':''):''}${meta||(x.chapter?'':'No content yet')}</div><div style="margin-top:4px;font-size:13px;color:${x.published?'var(--ok)':'var(--mut,#888)'}">${x.published?'● Published':'Draft'}</div></div></div><div class="g3" style="margin-top:10px"><button class="bl" onclick="ntEdit('${x.id}')">✏️ Edit</button><button class="bl" onclick="ntPub('${x.id}',${!x.published})">${x.published?'Unpublish':'Publish'}</button><button class="bl" onclick="ntDel('${x.id}')">Delete</button></div></div>`;
   });
   h(o);
 }
@@ -781,10 +781,10 @@ async function ntEdit(id){
   if(nt.sub==='der'){
     const x=nt.ders.find(d=>d.id===id);if(!x)return;
     const pages=[];for(let k=0;k<(x.pages||0);k++){const d=await db.collection('derivSrc').doc(id+'_'+k).get().catch(()=>null);pages.push({img:d&&d.exists?d.data().img:''})}
-    nt.edit={kind:'der',id,title:x.title,yt:x.yt||'',pages,oldPages:x.pages||0,published:!!x.published,free:!!x.free,order:x.order,created:x.created};
+    nt.edit={kind:'der',id,title:x.title,chapter:x.chapter||'',yt:x.yt||'',pages,oldPages:x.pages||0,published:!!x.published,free:!!x.free,order:x.order,created:x.created};
   }else{
     const x=nt.cons.find(d=>d.id===id);if(!x)return;
-    nt.edit={kind:'con',id,title:x.title,text:x.text||'',video:x.video||'',published:!!x.published,free:!!x.free,order:x.order};
+    nt.edit={kind:'con',id,title:x.title,chapter:x.chapter||'',text:x.text||'',video:x.video||'',published:!!x.published,free:!!x.free,order:x.order};
   }
   notesAdminRender();
 }
@@ -802,15 +802,18 @@ async function ntDel(id){
 function ntSync(){
   const e=nt.edit;if(!e)return;
   if(ntEl('nt_t'))e.title=ntEl('nt_t').value;
+  if(ntEl('nt_ch'))e.chapter=ntEl('nt_ch').value;
   if(e.kind==='der'&&ntEl('nt_y'))e.yt=ntEl('nt_y').value.trim();
   if(e.kind==='con'){if(ntEl('nt_x'))e.text=ntEl('nt_x').value;if(ntEl('nt_v'))e.video=ntEl('nt_v').value.trim()}
   if(ntEl('nt_p'))e.published=ntEl('nt_p').checked;
   if(ntEl('nt_f'))e.free=ntEl('nt_f').checked;
 }
+const CHAPTERS={'Physics XI':['Units and Measurements','Motion in a Straight Line','Motion in a Plane','Laws of Motion','Work, Energy and Power','System of Particles and Rotational Motion','Gravitation','Mechanical Properties of Solids','Mechanical Properties of Fluids','Thermal Properties of Matter','Thermodynamics','Kinetic Theory','Oscillations','Waves'],'Physics XII':['Electric Charges and Fields','Electrostatic Potential and Capacitance','Current Electricity','Moving Charges and Magnetism','Magnetism and Matter','Electromagnetic Induction','Alternating Current','Electromagnetic Waves','Ray Optics','Wave Optics','Dual Nature of Radiation and Matter','Atoms','Nuclei','Semiconductor Electronics']};
+const chapSel=(e)=>{const L=CHAPTERS[sec]||[];return `<label class="mut" style="margin-top:0">📖 Chapter</label><select id="nt_ch" style="width:100%">${'<option value="">— Choose chapter —</option>'}${L.map((c,i)=>`<option value="${esc(c)}" ${e.chapter===c?'selected':''}>${i+1}. ${esc(c)}</option>`).join('')}</select>`};
 function derEditorHtml(e){
   const pg=e.pages.map((p,i)=>`<div class="row" style="margin:6px 0"><img src="${p.img}" alt="" style="max-width:100%;max-height:140px;border-radius:6px"><button class="del" onclick="ntRmPage(${i})">Remove page</button></div>`).join('');
   return `<button class="sec" onclick="ntCancel()">← Back</button><h1 style="margin-top:12px">${e.id?'Edit derivation':'New derivation'}</h1><div class="card">
-  <label class="mut">Title</label><input type="text" id="nt_t" value="${esc(e.title)}" placeholder="e.g. Coulomb's law derivation">
+  ${chapSel(e)}<label class="mut" style="margin-top:10px">Title</label><input type="text" id="nt_t" value="${esc(e.title)}" placeholder="e.g. Coulomb's law derivation">
   <label class="mut" style="margin-top:10px">🎬 YouTube video link (optional)</label><input type="text" id="nt_y" value="${esc(e.yt)}" placeholder="https://youtu.be/…">
   <label class="mut" style="margin-top:10px">✍️ Handwritten derivation (PDF ya image, optional)</label>
   <button class="sec" onclick="ntAddFile()">📄 Add PDF / image</button><p class="mut" style="margin:6px 0 0">Pages: ${e.pages.length}</p>${pg}
@@ -820,7 +823,7 @@ function derEditorHtml(e){
 }
 function conEditorHtml(e){
   return `<button class="sec" onclick="ntCancel()">← Back</button><h1 style="margin-top:12px">${e.id?'Edit concept':'New concept'}</h1><div class="card">
-  <label class="mut">Topic</label><input type="text" id="nt_t" value="${esc(e.title)}" placeholder="e.g. Electric field">
+  ${chapSel(e)}<label class="mut" style="margin-top:10px">Topic</label><input type="text" id="nt_t" value="${esc(e.title)}" placeholder="e.g. Electric field">
   <label class="mut" style="margin-top:10px">📝 Short notes</label><textarea id="nt_x" rows="8" placeholder="Write important points / formulae">${esc(e.text)}</textarea>
   <label class="mut" style="margin-top:10px">🎬 Video link (optional)</label><input type="text" id="nt_v" value="${esc(e.video)}" placeholder="https://youtu.be/…">
   <label style="display:flex;gap:10px;align-items:center;margin-top:12px"><input type="checkbox" id="nt_f" ${e.free?'checked':''} style="width:22px;height:22px;margin:0"> Free (students can open without premium)</label>
@@ -845,10 +848,11 @@ function ntAddFile(){
 async function ntSaveDer(){
   ntSync();const e=nt.edit,title=e.title.trim();
   if(!title)return alert('Please add a title.');
+  if(!e.chapter)return alert('Please choose a chapter.');
   if(!e.yt&&!e.pages.length)return alert('Add a YouTube link or a handwritten PDF/image.');
   const id=e.id||nid();
   try{
-    await db.collection('derivs').doc(id).set({section:sec,title,yt:e.yt||'',pages:e.pages.length,published:!!e.published,free:!!e.free,order:e.order||Date.now(),created:e.created||Date.now()});
+    await db.collection('derivs').doc(id).set({section:sec,title,chapter:e.chapter,yt:e.yt||'',pages:e.pages.length,published:!!e.published,free:!!e.free,order:e.order||Date.now(),created:e.created||Date.now()});
     for(let k=0;k<e.pages.length;k++)await db.collection('derivSrc').doc(id+'_'+k).set({did:id,k,img:e.pages[k].img});
     for(let k=e.pages.length;k<(e.oldPages||0);k++)await db.collection('derivSrc').doc(id+'_'+k).delete().catch(()=>{});
     nt.edit=null;await notesAdminLoad();notesAdminRender();
@@ -857,9 +861,10 @@ async function ntSaveDer(){
 async function ntSaveCon(){
   ntSync();const e=nt.edit,title=e.title.trim();
   if(!title)return alert('Please add a topic name.');
+  if(!e.chapter)return alert('Please choose a chapter.');
   const id=e.id||nid();
   try{
-    await db.collection('concepts').doc(id).set({section:sec,title,text:e.text||'',video:e.video||'',published:!!e.published,free:!!e.free,order:e.order||Date.now(),created:e.created||Date.now()});
+    await db.collection('concepts').doc(id).set({section:sec,title,chapter:e.chapter,text:e.text||'',video:e.video||'',published:!!e.published,free:!!e.free,order:e.order||Date.now(),created:e.created||Date.now()});
     nt.edit=null;await notesAdminLoad();notesAdminRender();
   }catch(err){alert('Could not save: '+(err.message||err))}
 }
@@ -901,8 +906,9 @@ function ntListHtml(){
     return `<div class="card opt" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px" onclick="${lock?'ntLocked()':`ntOpen('${x.id}')`}"><div style="min-width:0"><b>${lock?'🔒':'✅'} ${esc(x.title)}</b><div class="mut" style="font-size:12px">${meta}</div></div><span class="mut" style="flex:none">${lock?'Premium':'Free'} ›</span></div>`};
   let o=`<button class="sec" onclick="nt.scr='landing';notesStudentRender()">← Back</button><h1 style="margin-top:12px">${nt.sub==='der'?'✍️ Derivations':'💡 Concepts'}</h1><p class="mut">${esc(sec)}</p>`;
   if(!L.length)o+=`<div class="card mut">Nothing has been added yet.</div>`;
-  if(free.length)o+=`<h3 style="color:#ffe27a;margin:14px 0 8px">Free notes</h3>`+free.map(row).join('');
-  if(prem.length)o+=`<h3 style="color:#ffe27a;margin:14px 0 8px">⭐ Premium notes</h3>`+prem.map(row).join('');
+  const grp={};L.forEach(x=>{const k=x.chapter||'Other';(grp[k]=grp[k]||[]).push(x)});
+  const CL=CHAPTERS[sec]||[];const order=CL.concat(Object.keys(grp).filter(k=>!CL.includes(k)));
+  order.forEach(k=>{if(!grp[k])return;const fr=grp[k].filter(x=>x.free),pr=grp[k].filter(x=>!x.free);const no=k==='Other'?'Other':'Ch. '+(CL.indexOf(k)+1)+' · '+k;o+=`<h3 style="color:#ffe27a;margin:16px 0 8px">${esc(no)}</h3>`+fr.concat(pr).map(row).join('')});
   return o;
 }
 function notesStudentRender(){
