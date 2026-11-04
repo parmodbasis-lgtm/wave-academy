@@ -133,7 +133,7 @@ function wmApply(){let w=document.getElementById('wm');const on=false;
 ['copy','cut','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{if(!isTeacher&&uid&&!/^(INPUT|TEXTAREA)$/.test((e.target||{}).tagName||''))e.preventDefault()}));
 const barHtml=()=>`<div style="position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;padding:8px 6px;margin:0 -4px 8px;background:rgba(40,12,0,.8);border-bottom:1px solid rgba(255,226,122,.35)"><img src="${SLOGO}" alt="" width="38" height="38" style="border-radius:50%;background:#fff;flex:none"><b style="font-family:Georgia,serif;color:#ffe27a;font-size:17px;white-space:nowrap">The Wave Academy</b></div>`;
 const fitHdr=()=>document.querySelectorAll('.hdrt').forEach(e=>{let f=30;e.style.fontSize=f+'px';while(e.scrollWidth>e.clientWidth&&f>14){f-=1;e.style.fontSize=f+'px'}});
-const h=(html)=>{$app.innerHTML=('')+html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-M</div>';window.scrollTo(0,0);fitWT();fitHdr();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
+const h=(html)=>{$app.innerHTML=('')+html+'<div style="text-align:center;font-size:10px;opacity:.45;margin:18px 0 4px">App version 03-Nov-N</div>';window.scrollTo(0,0);fitWT();fitHdr();viewKind=rootNext||'sub';rootNext=null;try{wmApply()}catch(e){}try{const f=document.getElementById('rfb');if(f)f.remove()}catch(e){}if(uid)hideLg()};
 let lastBack=0;
 try{history.pushState({wa:1},'')}catch(e){}
 // Tab switch inside a class (Derivations / Formulae): remember the screen we came from, so back returns to it
@@ -932,7 +932,7 @@ async function loadDerPages(id,n){
   for(let k=0;k<n;k++){
     const d=await db.collection('derivSrc').doc(id+'_'+k).get().catch(()=>null);
     if(!d||!d.exists)continue;
-    o+=`<div style="position:relative;margin:6px 0;background:#fff;border-radius:8px;overflow:hidden"><img src="${d.data().img}" alt="" draggable="false" oncontextmenu="return false" style="width:100%;display:block;pointer-events:none">${wmHtml()}</div>`;
+    o+=`<div style="position:relative;margin:6px 0;background:#fff;border-radius:8px;overflow:hidden"><img src="${d.data().img}" alt="" draggable="false" oncontextmenu="return false" style="width:100%;display:block;pointer-events:none"></div>`;
   }
   const b2=document.getElementById('ntpg');if(b2)b2.innerHTML=o;
 }
