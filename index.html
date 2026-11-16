@@ -1935,7 +1935,7 @@ function drawResults(){
   <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button><button class="sec" id="shr" onclick="shareResult()">📷 Share result as JPG</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1d4ed8">●</span> Blue = attempted (tap for test analysis) &nbsp; <span style="color:#8b0000">●</span> Dark red = not attempted</p><div>`;
   const topS=done.length?done[0].res.score:null;
-  done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>genOf(x.res)?' 🔁':''}${x.all.some(r=>r.left)?' ⚠️<small style="opacity:.9"> Left the app</small>':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
+  done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>genOf(x.res)?' 🔁':''}${!t.dpp&&x.all.some(r=>r.left)?' ⚠️<small style="opacity:.9"> Left the app</small>':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
   no.forEach(x=>o+=`<button class="pill stk no" onclick="notTaken('${x.uid}')"><span>${esc(x.name)}</span></button>`);
   if(!rows.length)o+='<div class="card mut">No students have joined this class yet.</div>';
   h(o+`</div><div id="nt"></div>`);
@@ -2255,7 +2255,7 @@ document.addEventListener('visibilitychange',async()=>{
   if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
 });
 // App version: always visible on every screen (login, home, tests, results)
-(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-C';
+(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-D';
 v.style.cssText='position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.7;color:#fff;text-shadow:0 1px 2px #000;z-index:9998;pointer-events:none';
 document.body.appendChild(v)})();
 init();
