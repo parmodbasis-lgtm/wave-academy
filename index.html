@@ -634,7 +634,7 @@ function home(){normMine();wmOn=false;
     if(isTeacher){
       const dr=!pub&&!(t.publishAt>0),tn=dr?'':numTxt(t);
       o+=`<div class="card" style="${dr?'':'cursor:pointer;'}position:relative"${dr?'':` onclick="results('${t.id}')"`}>${tn?`<span style="position:absolute;top:6px;right:12px;font-size:11px;font-weight:700;color:var(--ac);letter-spacing:.3px">${tn}</span>`:''}<div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${t.dpp?'📘 DPP · ':''}${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div></div></div>${dl}<div style="margin-top:${dr?0:6}px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+fd(t.publishAt)+'</span>':''}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div>
-      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="confirmDel('${t.id}')">Delete</button><button class="bl" onclick="paperPdf('${t.id}',false)">Question Paper</button><button class="bl" onclick="paperPdf('${t.id}',true)">Answer Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button>${dr?'<button class="bl" style="grid-column:1/-1;cursor:default">Draft</button>':'<button class="bl" style="grid-column:1/-1" onclick="results(\''+t.id+'\')">📊 Result</button>'}</div></div>`;
+      <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="confirmDel('${t.id}')">Delete</button><button class="bl" onclick="openPaper('${t.id}')">Question Paper</button><button class="bl" onclick="paperPdf('${t.id}',true)">Answer Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button>${dr?'<button class="bl" style="grid-column:1/-1;cursor:default">Draft</button>':'<button class="bl" style="grid-column:1/-1" onclick="results(\''+t.id+'\')">📊 Result</button>'}</div></div>`;
       return;
     }
     o+=t.dpp?dppCard(t):stuTC(t);
@@ -1926,6 +1926,81 @@ async function paperPdf(id,key){
     catch(e){pp.className='';setTimeout(()=>window.print(),200)}   // if rendering fails, use print dialog
   },300);
 }
+// ===== Question paper preview + downloads (PDF and per-question transparent HD images) =====
+const PVW_CSS=`
+#pvw{position:fixed;inset:0;z-index:9980;background:#1b1f2b;overflow:auto;color:#fff;font-family:system-ui,sans-serif}
+#pvw .pvw-top{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:#1b1f2b}
+#pvw .pvw-top b{font-size:18px}
+#pvw .pvw-bar{display:flex;gap:8px;flex-wrap:wrap;padding:0 12px 10px}
+#pvw button{font:inherit;font-weight:700;padding:9px 12px;border-radius:10px;border:0;background:#F0C63C;color:#1b1f2b;cursor:pointer}
+#pvw button.sec{background:#fff;color:#1b1f2b}
+#pvw .pvw-body{padding:0 12px 40px}
+#pvw #pvwPages{background:#777;padding:10px 0;border-radius:6px}
+#pvw h2{font-size:16px;margin:18px 0 6px;color:#F0C63C}
+#pvw .pvw-q{background:rgba(255,255,255,.08);border-radius:12px;padding:10px;margin:8px 0;display:flex;flex-direction:column;gap:8px}
+#pvw .pvw-qt{font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+#pp.show{display:block!important;position:static!important;left:auto!important;top:auto!important;width:auto!important;background:#fff}`;
+function pvwCss(){if(!document.getElementById('pvwcss')){const st=document.createElement('style');st.id='pvwcss';st.textContent=PVW_CSS;document.head.appendChild(st)}}
+// same page layout as the PDF (fills #pp, final class 'show' for on-screen preview)
+function buildPages(t,key,pp){
+  const R={'Class IX':'9','Class X':'10','Physics XI':'11','Physics XII':'12'};
+  const RN={'9':'IX','10':'X','11':'XI','12':'XII'};
+  const cn=R[t.section]||'',sub=isSub(t.section)?(t.subject||'Science'):'Physics';
+  const X=v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const qHtml=(q,i)=>{let o=`<div class="pp-q"><div class="pp-n">Q${i}.</div><div>${fmt(q.q)}</div>${imgQ(q)}<div class="pp-o">`;q.options.forEach((op,j)=>o+=`<div>${'abcd'[j]}) ${optHtml(q,j)}</div>`);return o+`</div><div class="pp-a">Answer:</div></div>`};
+  const hdr=`<div class="hd"><h1>The Wave Academy</h1><div class="sb">${cn?'Class '+(RN[cn]||cn)+' _ ':''}${X(sub)}</div><div class="sb">Topic: ${X(t.title||'')}</div><img src="${WLOGO}" alt=""></div><div class="rl"></div>`;
+  const qs=t.questions;
+  const pageHtml=(start,list,pno)=>`<div class="pp-page"><div class="pp-wm">THE WAVE ACADEMY</div>${hdr}<div class="cl">${list.map((q,i)=>qHtml(q,start+i+1)).join('')}</div><div class="pp-ft"><span>By Parmod Kumar</span><span>&#9742; 9999715042</span></div><div class="pp-pg">Page ${pno}</div></div>`;
+  pp.className='go';
+  const fits=(start,cnt,pno)=>{pp.innerHTML=pageHtml(start,qs.slice(start,start+cnt),pno);const cl=pp.querySelector('.cl');return cl.scrollWidth<=cl.clientWidth+1};
+  const plan=[];let i=0;
+  while(i<qs.length){let k=1;while(i+k<qs.length&&fits(i,k+1,plan.length+1))k++;plan.push([i,k]);i+=k}
+  pp.innerHTML=plan.map(([s,c],pi)=>pageHtml(s,qs.slice(s,s+c),pi+1)).join('');
+  pp.className='show';
+}
+async function openPaper(id){
+  const t=tests.find(x=>x.id===id);if(!t)return;
+  pvwCss(); closePaper();
+  try{await Promise.all([document.fonts.load('700 38px LB'),document.fonts.load('12px LB')])}catch(e){}
+  const ov=document.createElement('div');ov.id='pvw';
+  ov.innerHTML=`<div class="pvw-top"><b>Question paper</b><button class="sec" onclick="closePaper()">✕ Close</button></div>
+    <div class="pvw-bar"><button onclick="downloadPaperPdf('${id}')">⬇ Download PDF</button><button class="sec" onclick="downloadAllQ('${id}')">🖼 Download all question images</button></div>
+    <div class="pvw-body"><div id="pvwPages"></div><h2>Question images (transparent, HD)</h2><div id="pvwQs"></div></div>`;
+  document.body.appendChild(ov);
+  const pp=document.getElementById('pp');
+  document.getElementById('pvwPages').appendChild(pp);
+  buildPages(t,false,pp);
+  pp.style.zoom=Math.min(1,(window.innerWidth-24)/793);
+  document.getElementById('pvwQs').innerHTML=t.questions.map((q,i)=>`<div class="pvw-q"><div class="pvw-qt"><b>Q${i+1}.</b> ${fmt(q.q)}</div><button onclick="downloadQ('${id}',${i})">⬇ Image of Q${i+1}</button></div>`).join('');
+}
+function closePaper(){
+  const ov=document.getElementById('pvw');if(ov)ov.remove();
+  const pp=document.getElementById('pp');
+  if(pp){pp.className='';pp.innerHTML='';pp.style.zoom='';document.body.appendChild(pp)}
+}
+function downloadPaperPdf(id){closePaper();paperPdf(id,false)}
+async function qImageSave(q,n,title){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:-10000px;top:0;width:760px;box-sizing:border-box;padding:18px 22px;background:transparent;color:#F0C63C;font-family:LB,Georgia,serif;font-size:22px;line-height:1.5';
+  el.innerHTML=`<div style="display:flex;gap:10px"><b style="flex:none">Q${n}.</b><div style="flex:1;min-width:0">${fmt(q.q)}${imgQ(q)}</div></div>`+
+    `<div style="margin:10px 0 0 34px">${q.options.map((op,j)=>`<div style="margin:4px 0">${'abcd'[j]}) ${optHtml(q,j)}</div>`).join('')}</div>`;
+  document.body.appendChild(el);
+  try{
+    const c=await window.html2canvas(el,{scale:3,backgroundColor:null,useCORS:true,logging:false});
+    const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=(title||'Question').replace(/[^\w\-]+/g,'_')+'_Q'+n+'.png';
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000);
+  }catch(e){alert('Could not create the image.')}
+  el.remove();
+}
+async function downloadQ(id,i){const t=tests.find(x=>x.id===id);if(t)await qImageSave(t.questions[i],i+1,t.title)}
+async function downloadAllQ(id){
+  const t=tests.find(x=>x.id===id);if(!t)return;
+  for(let i=0;i<t.questions.length;i++){await qImageSave(t.questions[i],i+1,t.title);await new Promise(r=>setTimeout(r,800))}
+}
+
 function drawResults(){
   const t=rcache.t,rows=rcache.rows,done=rows.filter(x=>x.res),no=rows.filter(x=>!x.res);
   done.sort((a,b)=>b.res.score-a.res.score||(a.name||'').localeCompare(b.name||''));
@@ -2255,7 +2330,7 @@ document.addEventListener('visibilitychange',async()=>{
   if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
 });
 // App version: always visible on every screen (login, home, tests, results)
-(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-D';
+(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-E';
 v.style.cssText='position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.7;color:#fff;text-shadow:0 1px 2px #000;z-index:9998;pointer-events:none';
 document.body.appendChild(v)})();
 init();
