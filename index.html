@@ -1233,7 +1233,73 @@ function mk(i){
   f.value=v.slice(0,s)+ins+v.slice(e);f.focus();f.setSelectionRange(c,c);pv(f);
 }
 function mkBar(){
-  return `<div class="mkbar"><button class="sec" onclick="mkOpen=!mkOpen;sync();drawBuilder(true)">∑ Math keyboard ${mkOpen?'▲':'▼'}</button>${mkOpen?`<div class="mkgrid">${MK.map((m,i)=>`<button class="mkb" onpointerdown="event.preventDefault()" onclick="mk(${i})">${esc(m[0])}</button>`).join('')}</div><div class="mut" style="padding:4px 0">Equations sit between $ signs, e.g. $F = ma$. The keys add them for you.</div>`:''}</div>`;
+  return `<div class="mkbar"><button class="sec" onclick="eqStart()">∑ Equation keyboard</button><div class="mut" style="padding:4px 0">Tap inside a question or option first, then open the keyboard, pick a symbol, fill the □ boxes and tap Insert.</div></div>`;
+}
+
+// ===== Equation keyboard (tabs, live preview, fill-in boxes) =====
+const SQ=String.raw`\square`;
+const EQ_CATS=[
+['Basic',[['x²',String.raw`\square^{\square}`],['xₙ',String.raw`\square_{\square}`],['a/b',String.raw`\frac{\square}{\square}`],['√',String.raw`\sqrt{\square}`],['ⁿ√',String.raw`\sqrt[\square]{\square}`],['|x|',String.raw`\left|\square\right|`],['±',String.raw`\pm`],['×',String.raw`\times`],['·',String.raw`\cdot`],['≈',String.raw`\approx`],['≠',String.raw`\neq`],['≤',String.raw`\leq`],['≥',String.raw`\geq`],['→',String.raw`\rightarrow`],['∝',String.raw`\propto`],['∞',String.raw`\infty`],['°',String.raw`^{\circ}`]]],
+['Calculus',[['∫',String.raw`\int_{\square}^{\square}`],['∮',String.raw`\oint`],['∑',String.raw`\sum_{\square}^{\square}`],['lim',String.raw`\lim_{\square\to\square}`],['dy/dx',String.raw`\frac{dy}{dx}`],['d²y/dx²',String.raw`\frac{d^{2}y}{dx^{2}}`],['∂/∂x',String.raw`\frac{\partial\square}{\partial x}`],['ẋ',String.raw`\dot{\square}`],['ẍ',String.raw`\ddot{\square}`],['∂',String.raw`\partial`]]],
+['Vectors',[['A⃗',String.raw`\vec{\square}`],['Â',String.raw`\hat{\square}`],['Ā',String.raw`\bar{\square}`],['|A⃗|',String.raw`\left|\vec{\square}\right|`],['A⃗·B⃗',String.raw`\vec{\square}\cdot\vec{\square}`],['A⃗×B⃗',String.raw`\vec{\square}\times\vec{\square}`],['∇',String.raw`\nabla`],['⊥',String.raw`\perp`],['∥',String.raw`\parallel`]]],
+['Log & trig',[['log x',String.raw`\log\square`],['ln x',String.raw`\ln\square`],['logₐx',String.raw`\log_{\square}\square`],['eˣ',String.raw`e^{\square}`],['e⁻ˣ',String.raw`e^{-\square}`],['sin',String.raw`\sin\square`],['cos',String.raw`\cos\square`],['tan',String.raw`\tan\square`],['cot',String.raw`\cot\square`],['sec',String.raw`\sec\square`],['cosec',String.raw`\csc\square`],['sin⁻¹',String.raw`\sin^{-1}\square`],['cos⁻¹',String.raw`\cos^{-1}\square`],['tan⁻¹',String.raw`\tan^{-1}\square`]]],
+['Matrix',[['det 2×2',String.raw`\begin{vmatrix}\square&\square\\\square&\square\end{vmatrix}`],['det 3×3',String.raw`\begin{vmatrix}\square&\square&\square\\\square&\square&\square\\\square&\square&\square\end{vmatrix}`],['matrix 2×2',String.raw`\begin{pmatrix}\square&\square\\\square&\square\end{pmatrix}`],['matrix 3×3',String.raw`\begin{pmatrix}\square&\square&\square\\\square&\square&\square\\\square&\square&\square\end{pmatrix}`],['cases',String.raw`\begin{cases}\square\\\square\end{cases}`]]],
+['Greek',[['α',String.raw`\alpha`],['β',String.raw`\beta`],['γ',String.raw`\gamma`],['δ',String.raw`\delta`],['ε',String.raw`\varepsilon`],['ζ',String.raw`\zeta`],['η',String.raw`\eta`],['θ',String.raw`\theta`],['κ',String.raw`\kappa`],['λ',String.raw`\lambda`],['μ',String.raw`\mu`],['ν',String.raw`\nu`],['ξ',String.raw`\xi`],['π',String.raw`\pi`],['ρ',String.raw`\rho`],['σ',String.raw`\sigma`],['τ',String.raw`\tau`],['φ',String.raw`\phi`],['χ',String.raw`\chi`],['ψ',String.raw`\psi`],['ω',String.raw`\omega`],['Δ',String.raw`\Delta`],['Σ',String.raw`\Sigma`],['Ω',String.raw`\Omega`],['Φ',String.raw`\Phi`],['Θ',String.raw`\Theta`],['Λ',String.raw`\Lambda`],['Γ',String.raw`\Gamma`],['Ψ',String.raw`\Psi`]]],
+['Symbols',[['∴',String.raw`\therefore`],['∵',String.raw`\because`],['∈',String.raw`\in`],['∉',String.raw`\notin`],['⊂',String.raw`\subset`],['∪',String.raw`\cup`],['∩',String.raw`\cap`],['⇒',String.raw`\Rightarrow`],['⇔',String.raw`\Leftrightarrow`],['∀',String.raw`\forall`],['∃',String.raw`\exists`],['∇²',String.raw`\nabla^{2}`],['↑',String.raw`\uparrow`],['↓',String.raw`\downarrow`],['ħ',String.raw`\hbar`]]]
+];
+let eqOpen=false,eqCat=0,eqT=[],eqK=0;
+const eqBoxes=()=>eqT.filter(k=>k.t==='box');
+const eqTokens=tpl=>{const out=[];tpl.split(SQ).forEach((p,i)=>{if(i>0)out.push({t:'box',v:''});if(p)out.push({t:'lit',s:p})});return out};
+const eqSrc=ph=>eqT.map(k=>k.t==='lit'?k.s:(k.v||(ph?SQ:''))).join('');
+const katexHtml=src=>{try{return katex.renderToString(src,{throwOnError:false})}catch(e){return esc(src)}};
+function eqStart(){eqOpen=true;eqT=[];eqK=0;eqCat=0;drawEq()}
+function eqClose(){eqOpen=false;const d=document.getElementById('eqm');if(d)d.remove()}
+function eqPreviewHtml(){const src=eqSrc(true);return src?katexHtml(src):'<span class="mut">Your equation appears here</span>'}
+function drawEq(){
+  const old=document.getElementById('eqm');if(old)old.remove();
+  if(!eqOpen)return;
+  const bx=eqBoxes(),cur=bx[eqK]?bx[eqK].v:'';
+  const tabs=EQ_CATS.map((c,i)=>`<button class="${i===eqCat?'':'sec'}" style="flex:0 0 auto;padding:6px 12px;font-size:13px;margin-right:6px" onclick="eqCat=${i};drawEq()">${c[0]}</button>`).join('');
+  const tiles=EQ_CATS[eqCat][1].map((t,i)=>`<button onpointerdown="event.preventDefault()" onclick="eqTile(${i})" style="padding:6px 4px;min-height:54px;background:#f4f6fa;color:#1b1f2b;border:1px solid #d6dbe6;border-radius:10px;font-size:16px;display:flex;align-items:center;justify-content:center;overflow:hidden">${katexHtml(t[1])}</button>`).join('');
+  const d=document.createElement('div');d.id='eqm';
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9990;display:flex;align-items:flex-end;justify-content:center';
+  d.onclick=e=>{if(e.target.id==='eqm')eqClose()};
+  d.innerHTML=`<div style="background:#fff;color:#1b1f2b;width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px 18px">
+    <div class="row sp"><b style="font-size:20px">Equation</b><button class="sec" onclick="eqClose()">✕</button></div>
+    <div style="border:1px dashed #bbb;border-radius:10px;padding:8px 10px;margin:10px 0"><div class="mut" style="font-size:11px;letter-spacing:.5px">QUESTION PREVIEW</div><div id="eqPrev" style="min-height:40px;font-size:20px;margin-top:4px;overflow-x:auto">${eqPreviewHtml()}</div></div>
+    <div style="display:flex;overflow-x:auto;padding-bottom:6px;margin-bottom:8px">${tabs}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:260px;overflow-y:auto">${tiles}</div>
+    <div class="mut" style="margin:12px 0 4px;font-size:12px;letter-spacing:.4px">TYPE NUMBERS AND LETTERS INTO THE □ BOXES</div>
+    <textarea id="eqIn" rows="2" oninput="eqType(this.value)" placeholder="Pick a symbol above first" style="width:100%;box-sizing:border-box;font-size:16px">${esc(cur)}</textarea>
+    <div class="row" style="margin-top:8px;gap:8px;flex-wrap:nowrap"><button class="sec" onclick="eqNext()" style="flex:1">Next □ ▸</button><button class="sec" onclick="eqClear()" style="flex:1">Clear</button><button class="sec" onclick="eqClose()" style="flex:1">Cancel</button></div>
+    <button onclick="eqInsert()" style="width:100%;margin-top:10px">Insert</button>
+  </div>`;
+  document.body.appendChild(d);
+}
+function eqRefresh(){const p=document.getElementById('eqPrev');if(p)p.innerHTML=eqPreviewHtml()}
+function eqTile(i){
+  const tpl=EQ_CATS[eqCat][1][i][1],before=eqBoxes().length;
+  eqT=eqT.concat(eqTokens(tpl));
+  if(eqBoxes().length>before)eqK=before;
+  drawEq();
+}
+function eqType(v){const bx=eqBoxes();if(!bx.length)return;bx[eqK].v=v;eqRefresh()}
+function eqNext(){
+  const bx=eqBoxes();if(!bx.length)return toast('No empty box in this equation');
+  eqK=(eqK+1)%bx.length;
+  const ta=document.getElementById('eqIn');if(ta){ta.value=bx[eqK].v;ta.focus()}
+}
+function eqClear(){eqT=[];eqK=0;drawEq()}
+function eqInsert(){
+  const src=eqSrc(false).trim();
+  if(!src)return alert('Pick a symbol first.');
+  const f=lastF;
+  if(!f)return alert('Tap inside a question or option box first.');
+  const v=f.value,s=f.selectionStart==null?v.length:f.selectionStart,e=f.selectionEnd==null?s:f.selectionEnd;
+  const inMath=(v.slice(0,s).split('$').length-1)%2===1;
+  const ins=inMath?src:'$'+src+'$';
+  f.value=v.slice(0,s)+ins+v.slice(e);f.focus();const c=s+ins.length;f.setSelectionRange(c,c);pv(f);
+  eqClose();
 }
 let impMsg='',aiMsg='';
 const aiKey=()=>{try{return localStorage.getItem('wa_ak')||''}catch(e){return ''}};
@@ -2253,7 +2319,7 @@ document.addEventListener('visibilitychange',async()=>{
   if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
 });
 // App version: always visible on every screen (login, home, tests, results)
-(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-A';
+(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-B';
 v.style.cssText='position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.7;color:#fff;text-shadow:0 1px 2px #000;z-index:9998;pointer-events:none';
 document.body.appendChild(v)})();
 init();
