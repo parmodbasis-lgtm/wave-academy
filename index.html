@@ -1233,74 +1233,9 @@ function mk(i){
   f.value=v.slice(0,s)+ins+v.slice(e);f.focus();f.setSelectionRange(c,c);pv(f);
 }
 function mkBar(){
-  return `<div class="mkbar"><button class="sec" onclick="eqStart()">∑ Equation keyboard</button><div class="mut" style="padding:4px 0">Tap inside a question or option first, then open the keyboard, pick a symbol, fill the □ boxes and tap Insert.</div></div>`;
+  return `<div class="mkbar"><button class="sec" id="eqBtn" type="button">∑ Equation</button><div class="mut" style="padding:4px 0">Tap inside a question or option first, then tap ∑ Equation.</div></div>`;
 }
 
-// ===== Equation keyboard (tabs, live preview, fill-in boxes) =====
-const SQ=String.raw`\square`;
-const EQ_CATS=[
-['Basic',[['x²',String.raw`\square^{\square}`],['xₙ',String.raw`\square_{\square}`],['a/b',String.raw`\frac{\square}{\square}`],['√',String.raw`\sqrt{\square}`],['ⁿ√',String.raw`\sqrt[\square]{\square}`],['|x|',String.raw`\left|\square\right|`],['±',String.raw`\pm`],['×',String.raw`\times`],['·',String.raw`\cdot`],['≈',String.raw`\approx`],['≠',String.raw`\neq`],['≤',String.raw`\leq`],['≥',String.raw`\geq`],['→',String.raw`\rightarrow`],['∝',String.raw`\propto`],['∞',String.raw`\infty`],['°',String.raw`^{\circ}`]]],
-['Calculus',[['∫',String.raw`\int_{\square}^{\square}`],['∮',String.raw`\oint`],['∑',String.raw`\sum_{\square}^{\square}`],['lim',String.raw`\lim_{\square\to\square}`],['dy/dx',String.raw`\frac{dy}{dx}`],['d²y/dx²',String.raw`\frac{d^{2}y}{dx^{2}}`],['∂/∂x',String.raw`\frac{\partial\square}{\partial x}`],['ẋ',String.raw`\dot{\square}`],['ẍ',String.raw`\ddot{\square}`],['∂',String.raw`\partial`]]],
-['Vectors',[['A⃗',String.raw`\vec{\square}`],['Â',String.raw`\hat{\square}`],['Ā',String.raw`\bar{\square}`],['|A⃗|',String.raw`\left|\vec{\square}\right|`],['A⃗·B⃗',String.raw`\vec{\square}\cdot\vec{\square}`],['A⃗×B⃗',String.raw`\vec{\square}\times\vec{\square}`],['∇',String.raw`\nabla`],['⊥',String.raw`\perp`],['∥',String.raw`\parallel`]]],
-['Log & trig',[['log x',String.raw`\log\square`],['ln x',String.raw`\ln\square`],['logₐx',String.raw`\log_{\square}\square`],['eˣ',String.raw`e^{\square}`],['e⁻ˣ',String.raw`e^{-\square}`],['sin',String.raw`\sin\square`],['cos',String.raw`\cos\square`],['tan',String.raw`\tan\square`],['cot',String.raw`\cot\square`],['sec',String.raw`\sec\square`],['cosec',String.raw`\csc\square`],['sin⁻¹',String.raw`\sin^{-1}\square`],['cos⁻¹',String.raw`\cos^{-1}\square`],['tan⁻¹',String.raw`\tan^{-1}\square`]]],
-['Matrix',[['det 2×2',String.raw`\begin{vmatrix}\square&\square\\\square&\square\end{vmatrix}`],['det 3×3',String.raw`\begin{vmatrix}\square&\square&\square\\\square&\square&\square\\\square&\square&\square\end{vmatrix}`],['matrix 2×2',String.raw`\begin{pmatrix}\square&\square\\\square&\square\end{pmatrix}`],['matrix 3×3',String.raw`\begin{pmatrix}\square&\square&\square\\\square&\square&\square\\\square&\square&\square\end{pmatrix}`],['cases',String.raw`\begin{cases}\square\\\square\end{cases}`]]],
-['Greek',[['α',String.raw`\alpha`],['β',String.raw`\beta`],['γ',String.raw`\gamma`],['δ',String.raw`\delta`],['ε',String.raw`\varepsilon`],['ζ',String.raw`\zeta`],['η',String.raw`\eta`],['θ',String.raw`\theta`],['κ',String.raw`\kappa`],['λ',String.raw`\lambda`],['μ',String.raw`\mu`],['ν',String.raw`\nu`],['ξ',String.raw`\xi`],['π',String.raw`\pi`],['ρ',String.raw`\rho`],['σ',String.raw`\sigma`],['τ',String.raw`\tau`],['φ',String.raw`\phi`],['χ',String.raw`\chi`],['ψ',String.raw`\psi`],['ω',String.raw`\omega`],['Δ',String.raw`\Delta`],['Σ',String.raw`\Sigma`],['Ω',String.raw`\Omega`],['Φ',String.raw`\Phi`],['Θ',String.raw`\Theta`],['Λ',String.raw`\Lambda`],['Γ',String.raw`\Gamma`],['Ψ',String.raw`\Psi`]]],
-['Symbols',[['∴',String.raw`\therefore`],['∵',String.raw`\because`],['∈',String.raw`\in`],['∉',String.raw`\notin`],['⊂',String.raw`\subset`],['∪',String.raw`\cup`],['∩',String.raw`\cap`],['⇒',String.raw`\Rightarrow`],['⇔',String.raw`\Leftrightarrow`],['∀',String.raw`\forall`],['∃',String.raw`\exists`],['∇²',String.raw`\nabla^{2}`],['↑',String.raw`\uparrow`],['↓',String.raw`\downarrow`],['ħ',String.raw`\hbar`]]]
-];
-let eqOpen=false,eqCat=0,eqT=[],eqK=0;
-const eqBoxes=()=>eqT.filter(k=>k.t==='box');
-const eqTokens=tpl=>{const out=[];tpl.split(SQ).forEach((p,i)=>{if(i>0)out.push({t:'box',v:''});if(p)out.push({t:'lit',s:p})});return out};
-const eqSrc=ph=>eqT.map(k=>k.t==='lit'?k.s:(k.v||(ph?SQ:''))).join('');
-const katexHtml=src=>{try{return katex.renderToString(src,{throwOnError:false})}catch(e){return esc(src)}};
-function eqStart(){eqOpen=true;eqT=[];eqK=0;eqCat=0;drawEq()}
-function eqClose(){eqOpen=false;const d=document.getElementById('eqm');if(d)d.remove()}
-function eqPreviewHtml(){const src=eqSrc(true);return src?katexHtml(src):'<span class="mut">Your equation appears here</span>'}
-function drawEq(){
-  const old=document.getElementById('eqm');if(old)old.remove();
-  if(!eqOpen)return;
-  const bx=eqBoxes(),cur=bx[eqK]?bx[eqK].v:'';
-  const tabs=EQ_CATS.map((c,i)=>`<button class="${i===eqCat?'':'sec'}" style="flex:0 0 auto;padding:6px 12px;font-size:13px;margin-right:6px" onclick="eqCat=${i};drawEq()">${c[0]}</button>`).join('');
-  const tiles=EQ_CATS[eqCat][1].map((t,i)=>`<button onpointerdown="event.preventDefault()" onclick="eqTile(${i})" style="padding:6px 4px;min-height:54px;background:#f4f6fa;color:#1b1f2b;border:1px solid #d6dbe6;border-radius:10px;font-size:16px;display:flex;align-items:center;justify-content:center;overflow:hidden">${katexHtml(t[1])}</button>`).join('');
-  const d=document.createElement('div');d.id='eqm';
-  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9990;display:flex;align-items:flex-end;justify-content:center';
-  d.onclick=e=>{if(e.target.id==='eqm')eqClose()};
-  d.innerHTML=`<div style="background:#fff;color:#1b1f2b;width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px 18px">
-    <div class="row sp"><b style="font-size:20px">Equation</b><button class="sec" onclick="eqClose()">✕</button></div>
-    <div style="border:1px dashed #bbb;border-radius:10px;padding:8px 10px;margin:10px 0"><div class="mut" style="font-size:11px;letter-spacing:.5px">QUESTION PREVIEW</div><div id="eqPrev" style="min-height:40px;font-size:20px;margin-top:4px;overflow-x:auto">${eqPreviewHtml()}</div></div>
-    <div style="display:flex;overflow-x:auto;padding-bottom:6px;margin-bottom:8px">${tabs}</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:260px;overflow-y:auto">${tiles}</div>
-    <div class="mut" style="margin:12px 0 4px;font-size:12px;letter-spacing:.4px">TYPE NUMBERS AND LETTERS INTO THE □ BOXES</div>
-    <textarea id="eqIn" rows="2" oninput="eqType(this.value)" placeholder="Pick a symbol above first" style="width:100%;box-sizing:border-box;font-size:16px">${esc(cur)}</textarea>
-    <div class="row" style="margin-top:8px;gap:8px;flex-wrap:nowrap"><button class="sec" onclick="eqNext()" style="flex:1">Next □ ▸</button><button class="sec" onclick="eqClear()" style="flex:1">Clear</button><button class="sec" onclick="eqClose()" style="flex:1">Cancel</button></div>
-    <button onclick="eqInsert()" style="width:100%;margin-top:10px">Insert</button>
-  </div>`;
-  document.body.appendChild(d);
-}
-function eqRefresh(){const p=document.getElementById('eqPrev');if(p)p.innerHTML=eqPreviewHtml()}
-function eqTile(i){
-  const tpl=EQ_CATS[eqCat][1][i][1],before=eqBoxes().length;
-  eqT=eqT.concat(eqTokens(tpl));
-  if(eqBoxes().length>before)eqK=before;
-  drawEq();
-}
-function eqType(v){const bx=eqBoxes();if(!bx.length)return;bx[eqK].v=v;eqRefresh()}
-function eqNext(){
-  const bx=eqBoxes();if(!bx.length)return toast('No empty box in this equation');
-  eqK=(eqK+1)%bx.length;
-  const ta=document.getElementById('eqIn');if(ta){ta.value=bx[eqK].v;ta.focus()}
-}
-function eqClear(){eqT=[];eqK=0;drawEq()}
-function eqInsert(){
-  const src=eqSrc(false).trim();
-  if(!src)return alert('Pick a symbol first.');
-  const f=lastF;
-  if(!f)return alert('Tap inside a question or option box first.');
-  const v=f.value,s=f.selectionStart==null?v.length:f.selectionStart,e=f.selectionEnd==null?s:f.selectionEnd;
-  const inMath=(v.slice(0,s).split('$').length-1)%2===1;
-  const ins=inMath?src:'$'+src+'$';
-  f.value=v.slice(0,s)+ins+v.slice(e);f.focus();const c=s+ins.length;f.setSelectionRange(c,c);pv(f);
-  eqClose();
-}
 let impMsg='',aiMsg='';
 const aiKey=()=>{try{return localStorage.getItem('wa_ak')||''}catch(e){return ''}};
 const aiCard=()=>`<div class="card"><h2 style="margin-bottom:4px">✨ Make questions with AI</h2><p class="mut" style="margin:0 0 8px">Write the topic and AI creates the MCQs. Then edit everything below.</p><label class="mut">Topic</label><textarea id="aitp" rows="2" placeholder="e.g. Refraction of light – medium level, numericals also"></textarea><label class="mut">Number of questions</label><input type="number" id="aict" min="1" max="30" value="10">
@@ -1673,6 +1608,7 @@ function drawBuilder(keep){
   });
   o+=`<div class="row"><button class="sec" onclick="addQ()">+ Add question</button>${draft.id?'<button onclick="saveTest(draft.pub)">Save changes</button>':'<button class="sec" onclick="saveTest(false)">Save as draft</button><button onclick="saveTest(true)">Save &amp; publish</button>'}<button class="sec" onclick="home()">Cancel</button></div>`;
   h(o);if(keep)window.scrollTo(0,y);
+  try{if(window.EquationEditor){EquationEditor.attach('textarea.mf,input.mf');EquationEditor.button('#eqBtn')}}catch(e){}
 }
 function addQ(){sync();draft.qs.push(blankQ());drawBuilder();window.scrollTo(0,document.body.scrollHeight)}
 function rmQ(i){sync();draft.qs.splice(i,1);drawBuilder(true)}
@@ -2319,10 +2255,293 @@ document.addEventListener('visibilitychange',async()=>{
   if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
 });
 // App version: always visible on every screen (login, home, tests, results)
-(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-B';
+(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-C';
 v.style.cssText='position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.7;color:#fff;text-shadow:0 1px 2px #000;z-index:9998;pointer-events:none';
 document.body.appendChild(v)})();
 init();
+</script>
+<script>
+/*!
+ * Equation Editor – a ready-made "∑ Equation" popup for any web page.
+ * From The Wave Academy worksheet app.
+ *
+ * What it does
+ *   - A popup with tabs (Basic, Calculus, Vectors, Log & trig, Matrix, Greek, Symbols).
+ *   - Tap a button -> LaTeX with □ boxes goes into the code box; type into the boxes.
+ *   - Live preview of the equation, and of the whole text with the equation in place.
+ *   - "Insert" puts $…$ into the text box you last tapped. Tap inside an existing $…$ first to edit it.
+ *   - Optional: pasting from MS Word keeps Word's equations as $…$.
+ *   - EquationEditor.render(text) turns "text with $…$" into nicely drawn HTML.
+ *
+ * Needs KaTeX (loaded automatically from cdnjs if the page does not have it).
+ *
+ * Use
+ *   <script src="equation-editor.js"><\/script>
+ *   <script>
+ *     EquationEditor.attach("#question, #optionA, #optionB");   // boxes that can get equations
+ *     EquationEditor.button("#eqBtn");                          // button that opens the popup
+ *   <\/script>
+ */
+(function () {
+  "use strict";
+  const KATEX_VER = "0.16.9";
+  const MATH_RE = /\$([^$\n]+)\$/g;
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // ---------- KaTeX ----------
+  let katexReady = null;
+  function loadKatex() {
+    if (window.katex) return Promise.resolve();
+    if (katexReady) return katexReady;
+    katexReady = new Promise(res => {
+      const base = `https://cdnjs.cloudflare.com/ajax/libs/KaTeX/${KATEX_VER}/`;
+      if (!document.querySelector('link[href*="katex"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = base + "katex.min.css"; document.head.appendChild(l); }
+      const s = document.createElement("script"); s.src = base + "katex.min.js"; s.onload = s.onerror = () => res(); document.head.appendChild(s);
+    });
+    return katexReady;
+  }
+  function texHTML(tex, display) {
+    if (!window.katex) return esc(tex);
+    // newlines inside KaTeX's drawings (√, vector arrows) must not turn into <br> later
+    try { return katex.renderToString(tex, { throwOnError: false, strict: "ignore", output: "html", displayMode: !!display }).replace(/\n/g, " "); } catch (e) { return esc(tex); }
+  }
+  // text with $…$ -> HTML (keeps "." or "," on the same line as the equation)
+  function render(s, keepLines) {
+    s = String(s ?? ""); let out = "", last = 0;
+    for (const m of s.matchAll(MATH_RE)) {
+      out += esc(s.slice(last, m.index)); last = m.index + m[0].length;
+      const punct = (s.slice(last).match(/^[.,;:!?)\]]+/) || [""])[0]; last += punct.length;
+      out += punct ? `<span style="white-space:nowrap">${texHTML(m[1])}${esc(punct)}</span>` : texHTML(m[1]);
+    }
+    out += esc(s.slice(last));
+    return keepLines === false ? out : out.replace(/\n/g, "<br>");
+  }
+
+  // ---------- buttons ----------
+  const TABS = [
+    ["Basic", [["\\frac{a}{b}", "\\frac{□}{□}", "fraction"], ["x^{2}", "□^{2}", "square"], ["x^{3}", "□^{3}", "cube"], ["x^{n}", "□^{□}", "any power"], ["x_{n}", "□_{□}", "subscript"],
+      ["\\sqrt{x}", "\\sqrt{□}"], ["\\sqrt[3]{x}", "\\sqrt[3]{□}"], ["\\sqrt[n]{x}", "\\sqrt[□]{□}"], ["(\;)", "\\left(□\\right)"], ["[\;]", "\\left[□\\right]"], ["|x|", "\\left|□\\right|", "modulus"],
+      ["a{\\times}10^{n}", "□\\times 10^{□}", "× 10ⁿ"], ["\\theta^{\\circ}", "□^{\\circ}", "degree"], ["\\text{ab}", "\\text{□}", "words, units"]]],
+    ["Calculus", [["\\int", "\\int □\\,d□", "integral"], ["\\int_{a}^{b}", "\\int_{□}^{□} □\\,d□", "with limits"], ["\\oint", "\\oint □\\,d□", "closed"], ["\\iint", "\\iint □\\,d□"],
+      ["\\frac{dy}{dx}", "\\frac{d□}{d□}"], ["\\frac{d^{2}y}{dx^{2}}", "\\frac{d^{2}□}{d□^{2}}"], ["\\frac{\\partial y}{\\partial x}", "\\frac{\\partial □}{\\partial □}"], ["\\dot{x}", "\\dot{□}"], ["\\ddot{x}", "\\ddot{□}"],
+      ["\\lim_{x\\to 0}", "\\lim_{□\\to □} □", "limit"], ["\\sum", "\\sum □", "sum"], ["\\sum_{i=1}^{n}", "\\sum_{□=□}^{□} □", "with limits"], ["\\Delta x", "\\Delta □"], ["\\infty", "\\infty "]]],
+    ["Vectors", [["\\vec{A}", "\\vec{□}", "vector"], ["\\hat{\\imath}", "\\hat{\\imath}"], ["\\hat{\\jmath}", "\\hat{\\jmath}"], ["\\hat{k}", "\\hat{k}"], ["\\hat{A}", "\\hat{□}", "unit vector"],
+      ["\\vec{A}\\cdot\\vec{B}", "\\vec{□}\\cdot\\vec{□}", "dot product"], ["\\vec{A}\\times\\vec{B}", "\\vec{□}\\times\\vec{□}", "cross product"], ["|\\vec{A}|", "\\left|\\vec{□}\\right|", "magnitude"], ["\\bar{x}", "\\bar{□}", "average"], ["\\nabla", "\\nabla "]]],
+    ["Log & trig", [["\\log x", "\\log □"], ["\\ln x", "\\ln □"], ["\\log_{a}x", "\\log_{□} □"], ["e^{x}", "e^{□}", "exponential"], ["e^{-x}", "e^{-□}"],
+      ["\\sin", "\\sin □"], ["\\cos", "\\cos □"], ["\\tan", "\\tan □"], ["\\cot", "\\cot □"], ["\\sec", "\\sec □"], ["\\csc", "\\csc □", "cosec"],
+      ["\\sin^{-1}", "\\sin^{-1} □"], ["\\cos^{-1}", "\\cos^{-1} □"], ["\\tan^{-1}", "\\tan^{-1} □"], ["\\sin^{2}", "\\sin^{2} □"]]],
+    ["Matrix", [["\\begin{vmatrix}a&b\\\\c&d\\end{vmatrix}", "\\begin{vmatrix} □ & □ \\\\ □ & □ \\end{vmatrix}", "det 2×2"],
+      ["\\begin{vmatrix}a&b&c\\\\d&e&f\\\\g&h&i\\end{vmatrix}", "\\begin{vmatrix} □ & □ & □ \\\\ □ & □ & □ \\\\ □ & □ & □ \\end{vmatrix}", "det 3×3"],
+      ["\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}", "\\begin{bmatrix} □ & □ \\\\ □ & □ \\end{bmatrix}", "matrix 2×2"],
+      ["\\begin{bmatrix}a&b&c\\\\d&e&f\\\\g&h&i\\end{bmatrix}", "\\begin{bmatrix} □ & □ & □ \\\\ □ & □ & □ \\\\ □ & □ & □ \\end{bmatrix}", "matrix 3×3"],
+      ["\\begin{cases}a\\\\b\\end{cases}", "\\begin{cases} □ & □ \\\\ □ & □ \\end{cases}", "cases"]]],
+    ["Greek", [["\\hat{\\imath}", "\\hat{\\imath} ", "i cap"], ["\\hat{\\jmath}", "\\hat{\\jmath} ", "j cap"], ["\\hat{k}", "\\hat{k} ", "k cap"]].concat(
+      "alpha beta gamma delta epsilon eta theta lambda mu nu pi rho sigma tau phi chi psi omega kappa xi zeta Delta Omega Phi Sigma Theta Lambda Gamma Psi".split(" ").map(g => ["\\" + g, "\\" + g + " "]))],
+    ["Symbols", "times cdot pm mp approx propto neq leq geq equiv sim rightarrow Rightarrow rightleftharpoons therefore because angle perp parallel hbar infty".split(" ").map(g => ["\\" + g, "\\" + g + " "]).concat([["\\%", "\\%"], ["'", "'"]])]
+  ];
+
+  // ---------- look ----------
+  const CSS = `
+.wqe-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(10,20,35,.55);display:flex;align-items:flex-end;justify-content:center;font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#14213d}
+@media(min-width:640px){.wqe-ov{align-items:center}}
+.wqe-ov[hidden]{display:none}
+.wqe-box{background:#fff;width:min(720px,100%);max-height:94vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 16px 16px;display:grid;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+@media(min-width:640px){.wqe-box{border-radius:18px}}
+.wqe-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.wqe-head h2{margin:0;font-size:1.15rem}
+.wqe-btn{border:1.5px solid #d6dce6;background:#fff;color:#14213d;border-radius:10px;padding:8px 14px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit}
+.wqe-btn.pri{background:#0b6fb8;border-color:#0b6fb8;color:#fff}
+.wqe-q{border:1px dashed #d6dce6;border-radius:10px;padding:8px 10px;background:#fbfcfe;max-height:150px;overflow:auto}
+.wqe-lbl{margin:0 0 2px;font-size:.72rem;font-weight:700;color:#5b6b82;text-transform:uppercase;letter-spacing:.05em}
+.wqe-qp{font-size:.95rem;line-height:1.6;overflow-wrap:anywhere}
+.wqe-cur{background:#fff3d4;border-radius:4px;padding:0 2px;box-shadow:0 0 0 1.5px #f4ae22}
+.wqe-prev{min-height:74px;border:1.5px solid #d6dce6;border-radius:12px;background:#fff;display:grid;place-items:center;padding:10px;overflow-x:auto;font-size:1.25rem}
+.wqe-ph{color:#5b6b82;font-size:.9rem}
+.wqe-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.wqe-tabs::-webkit-scrollbar{display:none}
+.wqe-tab{flex:none;border:1.5px solid #d6dce6;background:#fff;border-radius:999px;padding:6px 12px;font-weight:600;font-size:.85rem;font-family:inherit;color:#14213d;cursor:pointer}
+.wqe-tab.on{background:#14213d;border-color:#14213d;color:#fff}
+.wqe-pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-height:210px;overflow-y:auto;padding:2px}
+.wqe-k{min-height:52px;border:1px solid #d6dce6;border-radius:10px;background:#fbfcfe;display:grid;place-items:center;cursor:pointer;padding:4px 2px;font-size:.95rem;overflow:hidden;color:#14213d}
+.wqe-k:active{background:#e6f1fa}
+.wqe-k small{display:block;font-size:.62rem;color:#5b6b82;margin-top:1px}
+.wqe-f{display:grid;gap:4px;font-size:.78rem;font-weight:600;color:#5b6b82;text-transform:uppercase;letter-spacing:.05em}
+.wqe-code{font:15px/1.4 ui-monospace,Menlo,Consolas,monospace;min-height:56px;border:1.5px solid #d6dce6;border-radius:10px;padding:8px 10px;resize:vertical;color:#14213d;text-transform:none;letter-spacing:0}
+.wqe-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.wqe-grow{flex:1}
+.wqe-msg{margin:0;color:#b45309;font-size:.85rem;min-height:1em}`;
+
+  // ---------- popup ----------
+  let ov, el = {}, tab = 0, field = null, range = null, lastField = null;
+  const targets = new Set();
+  function build() {
+    if (ov) return;
+    const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
+    ov = document.createElement("div"); ov.className = "wqe-ov"; ov.hidden = true;
+    ov.innerHTML = `<div class="wqe-box" role="dialog" aria-modal="true" aria-labelledby="wqeTitle">
+      <div class="wqe-head"><h2 id="wqeTitle">Equation</h2><button class="wqe-btn" type="button" data-x aria-label="Close">✕</button></div>
+      <div class="wqe-q"><p class="wqe-lbl">Preview of the text</p><div class="wqe-qp"></div></div>
+      <div class="wqe-prev" aria-live="polite"></div>
+      <div class="wqe-tabs" role="tablist"></div>
+      <div class="wqe-pal"></div>
+      <label class="wqe-f">Type numbers and letters into the □ boxes<textarea class="wqe-code" rows="2" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></label>
+      <div class="wqe-bar"><button class="wqe-btn" type="button" data-next>Next □ ▸</button><button class="wqe-btn" type="button" data-clear>Clear</button><span class="wqe-grow"></span><button class="wqe-btn" type="button" data-x>Cancel</button><button class="wqe-btn pri" type="button" data-ins>Insert</button></div>
+      <p class="wqe-msg" role="status"></p></div>`;
+    document.body.appendChild(ov);
+    const q = s => ov.querySelector(s);
+    el = { title: q("#wqeTitle"), qp: q(".wqe-qp"), prev: q(".wqe-prev"), tabs: q(".wqe-tabs"), pal: q(".wqe-pal"), code: q(".wqe-code"), msg: q(".wqe-msg") };
+    ov.querySelectorAll("[data-x]").forEach(b => b.onclick = close);
+    ov.addEventListener("click", e => { if (e.target === ov) close(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && !ov.hidden) close(); });
+    el.tabs.addEventListener("click", e => { const b = e.target.closest("[data-t]"); if (!b) return; tab = +b.dataset.t; palette(); });
+    el.pal.addEventListener("pointerdown", e => { if (e.target.closest(".wqe-k")) e.preventDefault(); });   // keep the keyboard on the code box
+    el.pal.addEventListener("click", e => {
+      const b = e.target.closest("[data-k]"); if (!b) return;
+      const snip = TABS[tab][1][+b.dataset.k][1], c = el.code, s = c.selectionStart ?? c.value.length, en = c.selectionEnd ?? s;
+      c.value = c.value.slice(0, s) + snip + c.value.slice(en); preview();
+      if (snip.includes("□")) selectBox(s); else { c.focus(); c.setSelectionRange(s + snip.length, s + snip.length); }
+    });
+    q("[data-next]").addEventListener("pointerdown", e => e.preventDefault());
+    q("[data-next]").onclick = () => selectBox(el.code.selectionEnd || 0);
+    q("[data-clear]").onclick = () => { el.code.value = ""; preview(); el.code.focus(); };
+    q("[data-ins]").onclick = insert;
+    el.code.addEventListener("input", preview);
+  }
+  function palette() {
+    el.tabs.innerHTML = TABS.map(([n], i) => `<button type="button" role="tab" class="wqe-tab${i === tab ? " on" : ""}" data-t="${i}">${esc(n)}</button>`).join("");
+    el.pal.innerHTML = TABS[tab][1].map(([lab, , note], i) => `<button type="button" class="wqe-k" data-k="${i}" aria-label="${esc(note || lab.replace(/\\/g, ""))}"><span>${texHTML(lab)}${note ? `<small>${esc(note)}</small>` : ""}</span></button>`).join("");
+  }
+  function selectBox(from) { const c = el.code, v = c.value; let i = v.indexOf("□", from); if (i < 0) i = v.indexOf("□"); c.focus(); if (i >= 0) c.setSelectionRange(i, i + 1); }
+  function preview() {
+    const code = el.code.value.trim(), v = field ? field.value : "", [a, b] = range || [v.length, v.length];
+    const eq = `<span class="wqe-cur">${code ? texHTML(code.replace(/□/g, "\\square ")) : "&nbsp;∑&nbsp;"}</span>`;
+    el.qp.innerHTML = render(v.slice(0, a), false) + (a > 0 && !/\s$/.test(v.slice(0, a)) ? " " : "") + eq + " " + render(v.slice(b), false);
+    el.qp.innerHTML = el.qp.innerHTML.replace(/\n/g, "<br>");
+    if (!code) { el.prev.innerHTML = `<span class="wqe-ph">Your equation appears here</span>`; return; }
+    el.prev.innerHTML = window.katex ? texHTML(code.replace(/□/g, "\\square "), true) : esc(code);
+  }
+  async function open(f) {
+    build(); await loadKatex();
+    field = f || lastField || [...targets][0] || null; range = null;
+    const v = field ? field.value : "", pos = field ? (field.selectionStart ?? v.length) : 0; let code = "";
+    for (const m of v.matchAll(MATH_RE)) if (pos >= m.index && pos <= m.index + m[0].length) { range = [m.index, m.index + m[0].length]; code = m[1]; break; }
+    if (!range) range = [pos, field ? (field.selectionEnd ?? pos) : pos];
+    el.title.textContent = code ? "Edit equation" : "Equation";
+    el.code.value = code; el.msg.textContent = ""; palette(); preview(); ov.hidden = false;
+    setTimeout(() => el.code.focus(), 60);
+  }
+  function close() { if (ov) ov.hidden = true; }
+  function insert() {
+    const code = el.code.value.trim().replace(/\$/g, "");
+    if (code.includes("□")) { el.msg.textContent = "Fill every □ box, or delete the ones you don't need."; selectBox(0); return; }
+    if (!field) { close(); return; }
+    const v = field.value, [a, b] = range || [v.length, v.length], pre = v.slice(0, a), post = v.slice(b);
+    const ins = code ? (pre && !/\s$/.test(pre) ? " " : "") + "$" + code + "$" + (post && !/^[\s.,;:)]/.test(post) ? " " : "") : "";
+    field.value = pre + ins + post; close();
+    field.focus(); const p = pre.length + ins.length; try { field.setSelectionRange(p, p); } catch (e) {}
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  // ---------- paste from MS Word: keep Word's equations as $…$ ----------
+  const ln = el => el.localName;
+  const kids = (el, name) => [...el.children].filter(c => ln(c) === name);
+  const kid = (el, name) => [...el.children].find(c => ln(c) === name);
+  const attr = (el, name) => { if (!el) return null; for (const a of el.attributes) if (a.localName === name) return a.value; return null; };
+  const TEX_CHR={"∫":"\\int","∬":"\\iint","∭":"\\iiint","∮":"\\oint","∑":"\\sum","∏":"\\prod","⋃":"\\bigcup","⋂":"\\bigcap"};
+  const TEX_DELIM={"(":"(",")":")","[":"[","]":"]","{":"\\{","}":"\\}","|":"|","‖":"\\|","⟨":"\\langle","⟩":"\\rangle","⌊":"\\lfloor","⌋":"\\rfloor","⌈":"\\lceil","⌉":"\\rceil","":"."};
+  const TEX_ACC={"\u0302":"\\hat","^":"\\hat","\u20d7":"\\vec","→":"\\vec","\u20d1":"\\vec","\u0305":"\\bar","¯":"\\bar","\u0304":"\\bar","\u0307":"\\dot","˙":"\\dot","\u0308":"\\ddot","¨":"\\ddot","~":"\\tilde","\u0303":"\\tilde"};
+  const TEX_UNI={"×":"\\times ","·":"\\cdot ","⋅":"\\cdot ","±":"\\pm ","∓":"\\mp ","≈":"\\approx ","∝":"\\propto ","≠":"\\neq ","≤":"\\leq ","≥":"\\geq ","∞":"\\infty ","→":"\\rightarrow ","⇒":"\\Rightarrow ","⇌":"\\rightleftharpoons ","∴":"\\therefore ","∵":"\\because ","∂":"\\partial ","∇":"\\nabla ","Δ":"\\Delta ","∠":"\\angle ","⊥":"\\perp ","∥":"\\parallel ","°":"^{\\circ}","−":"-","ℏ":"\\hbar ","…":"\\ldots ","′":"'"};
+  function texEsc(t){return t.replace(/\\/g,"\\backslash ").replace(/([{}%#&_$])/g,"\\$1").replace(/\^/g,"\\hat{}").replace(/[×·⋅±∓≈∝≠≤≥∞→⇒⇌∴∵∂∇Δ∠⊥∥°−ℏ…′]/g,c=>TEX_UNI[c])}
+  function ommlTex(n){const name=ln(n),c=k=>{const e=kid(n,k);return e?ommlTex(e):""};const pr=k=>kid(n,k);
+    const val=(prName,child,def)=>{const p=pr(prName);const e=p&&kid(p,child);const v=attr(e,"val");return v==null?def:v};
+    switch(name){
+      case "t":return texEsc(n.textContent);
+      case "r":{const rp=kid(n,"rPr");const sty=attr(rp&&kid(rp,"sty"),"val");const nor=rp&&kid(rp,"nor");
+        const txt=[...n.children].filter(x=>ln(x)==="t").map(x=>x.textContent).join("");if(!txt)return "";
+        if(nor||(/\s/.test(txt.trim())&&/[a-z]{2,}/i.test(txt)))return "\\text{"+txt.replace(/[{}\\]/g,"")+"}";
+        const body=texEsc(txt).replace(/ /g,"\\ ");
+        if(/^\s*(sin|cos|tan|cot|sec|csc|log|ln|exp|lim|max|min|det)\s*$/.test(txt))return "\\"+txt.trim()+" ";   // function names upright
+        if(sty==="p"&&/[A-Za-z]{2,}/.test(txt)){return txt.trim().match(/^(sin|cos|tan|cot|sec|csc|log|ln|exp|lim|max|min|det)$/)?"\\"+txt.trim()+" ":"\\mathrm{"+body+"}"}
+        if(sty==="b"||sty==="bi")return "\\mathbf{"+body+"}";return body}
+      case "f":{const tp=val("fPr","type","bar");const a=c("num"),b=c("den");return tp==="lin"||tp==="skw"?`{${a}}/{${b}}`:tp==="noBar"?`\\genfrac{}{}{0pt}{}{${a}}{${b}}`:`\\frac{${a}}{${b}}`}
+      case "sSup":return `{${c("e")}}^{${c("sup")}}`;
+      case "sSub":return `{${c("e")}}_{${c("sub")}}`;
+      case "sSubSup":return `{${c("e")}}_{${c("sub")}}^{${c("sup")}}`;
+      case "sPre":return `{}_{${c("sub")}}^{${c("sup")}}{${c("e")}}`;
+      case "rad":{const d=c("deg");const hide=val("radPr","degHide","0");return d&&!["1","on","true"].includes(hide)?`\\sqrt[${d}]{${c("e")}}`:`\\sqrt{${c("e")}}`}
+      case "d":{const b=val("dPr","begChr","("),e=val("dPr","endChr",")"),sep=val("dPr","sepChr","|");
+        const parts=kids(n,"e").map(ommlTex);return `\\left${TEX_DELIM[b]??b}${parts.join(sep==="|"?"\\mid ":texEsc(sep))}\\right${TEX_DELIM[e]??e}`}
+      case "nary":{const ch=val("naryPr","chr","∫");const loc=val("naryPr","limLoc","");const sub=c("sub"),sup=c("sup");
+        const subH=["1","on","true"].includes(val("naryPr","subHide","0")),supH=["1","on","true"].includes(val("naryPr","supHide","0"));
+        const op=(TEX_CHR[ch]||texEsc(ch))+(loc==="undOvr"&&/int/.test(TEX_CHR[ch]||"")?"\\limits":"");
+        return `${op}${!subH&&sub?`_{${sub}}`:""}${!supH&&sup?`^{${sup}}`:""} ${c("e")}`}
+      case "acc":{const ch=val("accPr","chr","\u0302");const e=c("e");const cmd=TEX_ACC[ch];
+        if(cmd==="\\hat"&&(e==="i"||e==="j"))return `\\hat{\\${e}math}`;return cmd?`${cmd}{${e}}`:`\\overset{${texEsc(ch)}}{${e}}`}
+      case "bar":return val("barPr","pos","bot")==="top"?`\\overline{${c("e")}}`:`\\underline{${c("e")}}`;
+      case "groupChr":{const pos=val("groupChrPr","pos","bot");return pos==="top"?`\\overbrace{${c("e")}}`:`\\underbrace{${c("e")}}`}
+      case "m":{const rows=kids(n,"mr").map(r=>kids(r,"e").map(ommlTex).join(" & "));return `\\begin{matrix}${rows.join(" \\\\ ")}\\end{matrix}`}
+      case "eqArr":return `\\begin{gathered}${kids(n,"e").map(ommlTex).join(" \\\\ ")}\\end{gathered}`;
+      case "func":return `${c("fName")} ${c("e")}`;
+      case "limLow":{const e=c("e");return /^\\?(lim|max|min)\s*$/.test(e.trim())||e.trim()==="\\lim"?`\\lim_{${c("lim")}}`:`\\underset{${c("lim")}}{${e}}`}
+      case "limUpp":return `\\overset{${c("lim")}}{${c("e")}}`;
+      case "box":case "borderBox":case "phant":return c("e");
+      case "oMathPara":return kids(n,"oMath").map(ommlTex).join(" \\quad ");
+    }
+    if(/Pr$/.test(name))return "";
+    return [...n.children].map(ommlTex).join("");
+  }
+  function wordHtmlToText(html) {
+    const eqs = [];
+    html = html.replace(/<!--\[if gte msEquation 12\]>([\s\S]*?)<!\[endif\]-->/gi, (m, x) => { eqs.push(x); return `@@EQ${eqs.length - 1}@@`; })
+      .replace(/<!\[if !msEquation\]>[\s\S]*?<!\[endif\]>/gi, "");
+    if (!eqs.length) return null;
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelectorAll("p,div,br,li,tr").forEach(e => e.insertAdjacentText(e.tagName === "BR" ? "afterend" : "beforeend", "\n"));
+    const text = (doc.body.textContent || "").replace(/ /g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    return text.replace(/@@EQ(\d+)@@/g, (m, i) => {
+      try {
+        const xml = new DOMParser().parseFromString(`<r xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${eqs[+i]}</r>`, "application/xml");
+        const root = xml.documentElement; if (root.getElementsByTagName("parsererror").length) return "";
+        const tx = [...root.children].map(ommlTex).join(" ").replace(/^(\s|\\ )+|(\s|\\ )+$/g, ""); return tx ? "$" + tx + "$" : "";
+      } catch (e) { return ""; }
+    });
+  }
+  function onPaste(e) {
+    const html = e.clipboardData && e.clipboardData.getData("text/html"); if (!html || !/msEquation/i.test(html)) return;
+    const text = wordHtmlToText(html); if (text == null) return;
+    e.preventDefault(); const f = e.target, a = f.selectionStart, b = f.selectionEnd;
+    f.value = f.value.slice(0, a) + text + f.value.slice(b); const p = a + text.length; f.setSelectionRange(p, p);
+    f.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  // ---------- public ----------
+  const list = x => typeof x === "string" ? [...document.querySelectorAll(x)] : x instanceof Element ? [x] : [...(x || [])];
+  window.EquationEditor = {
+    /** Boxes (input / textarea) that can get equations. options.wordPaste (default true): keep Word equations on paste. */
+    attach(boxes, options = {}) {
+      for (const f of list(boxes)) {
+        if (targets.has(f)) continue; targets.add(f);
+        f.addEventListener("focus", () => { lastField = f; });
+        if (options.wordPaste !== false) f.addEventListener("paste", onPaste);
+      }
+      loadKatex();
+    },
+    /** A button that opens the popup for the box you last tapped. */
+    button(btns) { for (const b of list(btns)) { b.addEventListener("pointerdown", e => e.preventDefault()); b.addEventListener("click", e => { e.preventDefault(); open(); }); } },
+    /** Open the popup for one box (or the last tapped one). */
+    open,
+    close,
+    /** "text with $…$" -> HTML with drawn equations (call after EquationEditor.ready()). */
+    render,
+    /** Draw the text of an element (or a list / CSS selector) with equations. */
+    renderInto(target, text) { for (const t of list(target)) t.innerHTML = render(text ?? t.textContent); },
+    /** Promise that resolves when KaTeX is loaded. */
+    ready: loadKatex,
+    /** Word clipboard HTML -> text with $…$ (null if it has no equations). */
+    wordHtmlToText
+  };
+})();
+
 </script>
 </body>
 </html>
