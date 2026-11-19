@@ -594,7 +594,7 @@ function stuCard(sc){
   const n=tests.filter(t=>(!sc||(t.section||'Other')===sc)&&(pubNow(t)||locked(t)||isAsg(t))&&!(mine[t.id]&&!canRetake(t.id))&&!(over(t)&&!att[t.id])).length;
   return `<div class="card"><div class="stc"><span class="pl" style="font-size:15px;padding:6px 14px">📘 Upcoming Tests : ${n}</span></div></div>`;
 }
-function home(){normMine();wmOn=false;
+function home(){normMine();wmOn=false;liveStop();
   draft=null;
   rootNext=isTeacher?(sec===null?'root':'sec'):(mySecs().length<2||!stuOpen?'root':'sec');
   if(!isTeacher&&!mySecs().includes(sec))sec=mySec;
@@ -1695,13 +1695,13 @@ function start(id){
 function begin(id){
   const t=tests.find(x=>x.id===id);if(!t)return;if(locked(t))return home();
   const a=att[id],n=t.questions.length;if(a&&a.left>0&&!t.dpp){autoLeft();return}if(mine[id]&&!canRetake(id))return home();if(over(t)&&!a&&!canRetake(id))return timeOver();
-  cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:(t.dpp?1e9:durMin(t)*60000),last:Date.now(),saved:0};
+  cur={t,screen:'q',i:a?Math.min(a.idx||0,n-1):0,ans:a&&a.answers&&a.answers.length===n?a.answers.slice():new Array(n).fill(-1),times:a&&a.times&&a.times.length===n?a.times.slice():new Array(n).fill(0),rem:a?a.remaining:(t.dpp?1e9:durMin(t)*60000),last:Date.now(),saved:0,startedAt:(a&&a.startedAt)||Date.now()};
   document.addEventListener('visibilitychange',onVis);window.addEventListener('pagehide',onHide);
   drawTest();clearInterval(timer);timer=setInterval(tick,1000);saveAttempt();
 }
 function saveAttempt(){
   if(!cur)return;cur.saved=Date.now();
-  const rec={answers:cur.ans,times:cur.times.map(v=>Math.round(v)),idx:cur.i,remaining:Math.max(0,Math.round(cur.rem)),updated:Date.now(),left:cur.leftAt||0};
+  const rec={answers:cur.ans,times:cur.times.map(v=>Math.round(v)),idx:cur.i,remaining:Math.max(0,Math.round(cur.rem)),updated:Date.now(),left:cur.leftAt||0,startedAt:cur.startedAt,testId:cur.t.id,answered:cur.ans.filter(a=>a>=0).length,total:cur.t.questions.length};
   att[cur.t.id]=rec;
   try{db.collection('users/'+uid+'/attempts').doc(cur.t.id).set(rec).catch(()=>{})}catch(e){}
 }
@@ -1729,7 +1729,7 @@ async function autoLeft(){
   const ids=Object.keys(att).filter(id=>att[id]&&att[id].left>0&&tests.some(t=>t.id===id&&!t.dpp)&&(!mine[id]||canRetake(id)));
   if(!ids.length)return;leftBusy=true;
   for(const id of ids){const t=tests.find(x=>x.id===id),a=att[id],n=t.questions.length,ans=a.answers&&a.answers.length===n?a.answers:new Array(n).fill(-1);
-    const rec=buildRec(t,ans,(a.times||[]).map(v=>Math.round(v/1000)),a.left);
+    const rec=buildRec(t,ans,(a.times||[]).map(v=>Math.round(v/1000)),a.left);if(a.startedAt)rec.startedAt=a.startedAt;
     try{await saveRec(rec);toast('Your test "'+t.title+'" was submitted because you left the app.')}catch(e){}}
   leftBusy=false;
   const y=window.scrollY;home();window.scrollTo(0,y);
@@ -1785,10 +1785,10 @@ async function submit(auto,leftAt){
   if(!cur)return;
   clearInterval(timer);timer=null;
   document.removeEventListener('visibilitychange',onVis);window.removeEventListener('pagehide',onHide);
-  const {t,ans}=cur,times=cur.times.map(v=>Math.round(v/1000));cur=null;
+  const {t,ans,startedAt}=cur,times=cur.times.map(v=>Math.round(v/1000));cur=null;
   const mk=hasNeg(t)&&!t.dpp,nq=t.questions.length,cc=ans.reduce((n,a,i)=>n+(a===t.questions[i].answer?1:0),0),ww=ans.reduce((n,a,i)=>n+(a>=0&&a!==t.questions[i].answer?1:0),0);
   const total=mk?4*nq:nq,score=mk?4*cc-ww:cc;
-  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:leftAt||Date.now(),...(leftAt?{left:1}:{}),...(mk?{mk:1}:{}),gen:allowed[t.id]||1},auto};
+  pend={rec:{testId:t.id,uid,name:myName,email:myEmail,score,total,answers:ans,times,at:leftAt||Date.now(),startedAt,...(leftAt?{left:1}:{}),...(mk?{mk:1}:{}),gen:allowed[t.id]||1},auto};
   await finishSave();
 }
 async function finishSave(){
@@ -2008,12 +2008,41 @@ function drawResults(){
   const avg=done.length?(done.reduce((s,x)=>s+x.res.score,0)/done.length).toFixed(1):'–';
   let o=`<button class="sec" onclick="home()">← Back</button><h1 style="margin-top:12px">${esc(t.title)}</h1><p class="mut">${esc(t.section||'')}${isSub(t.section)?' · '+esc(t.subject||'Science'):''} · ${t.questions.length} questions · ${durMin(t)} min</p>
   <div class="row" style="margin:8px 0"><button class="sec" onclick="editTest('${t.id}')">✏️ Edit test</button><button class="sec" onclick="paperPdf('${t.id}',false)">📄 Question paper PDF</button><button class="sec" onclick="paperPdf('${t.id}',true)">📄 PDF with answer key</button><button class="sec" id="shr" onclick="shareResult()">📷 Share result as JPG</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="gbox"><div class="big">${done.length}</div><div class="l">Attempted</div></div><div class="gbox"><div class="big">${no.length}</div><div class="l">Not attempted</div></div><div class="gbox"><div class="big">${avg}</div><div class="l">Average score</div></div></div>
+  <div id="liveBox"></div>
   <p class="mut" style="margin:14px 0 4px"><span style="color:#1d4ed8">●</span> Blue = attempted (tap for test analysis) &nbsp; <span style="color:#8b0000">●</span> Dark red = not attempted</p><div>`;
   const topS=done.length?done[0].res.score:null;
   done.forEach(x=>o+=`<button class="pill stk ok" onclick="analysis('${x.uid}')"><span>${esc(x.name)}${x.all.length>1?' <small style="opacity:.8">· Attempt '+x.all.length+'</small>':''}${x.allowed>genOf(x.res)?' 🔁':''}${!t.dpp&&x.all.some(r=>r.left)?' ⚠️<small style="opacity:.9"> Left the app</small>':''}</span><span class="sc">${x.res.score}/${x.res.total}</span>${x.res.score===topS?'<span class="st">⭐</span>':''}</button>`);
   no.forEach(x=>o+=`<button class="pill stk no" onclick="notTaken('${x.uid}')"><span>${esc(x.name)}</span></button>`);
   if(!rows.length)o+='<div class="card mut">No students have joined this class yet.</div>';
   h(o+`</div><div id="nt"></div>`);
+  startLive(t.id,rows.map(x=>x.uid));renderLive();
+}
+// ===== Live: students attempting this test now (teacher Result page) =====
+let liveT=null,liveMap={},liveUnsub=[],liveTick=null;
+function liveStop(){liveUnsub.forEach(f=>{try{f()}catch(e){}});liveUnsub=[];liveT=null;liveMap={};if(liveTick){clearInterval(liveTick);liveTick=null}}
+function startLive(tid,uids){
+  if(liveT===tid)return;
+  liveStop();liveT=tid;
+  uids.forEach(u=>{
+    liveUnsub.push(db.collection('users/'+u+'/attempts').doc(tid).onSnapshot(d=>{
+      if(d.exists)liveMap[u]=d.data();else delete liveMap[u];
+      renderLive();
+    },()=>{}));
+  });
+  liveTick=setInterval(renderLive,15000);
+}
+const liveTime=ms=>ms?new Date(ms).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'not recorded';
+function renderLive(){
+  const el=document.getElementById('liveBox');if(!el||!rcache||!rcache.t)return;
+  const t=rcache.t,now=Date.now();
+  const act=(rcache.rows||[]).filter(x=>{const a=liveMap[x.uid];return a&&now-(a.updated||0)<180000});
+  if(!act.length){el.innerHTML='';return}
+  el.innerHTML=`<div class="card" style="border:2px solid #22c55e"><b>🟢 Attempting now (${act.length})</b>`+act.map(x=>{
+    const a=liveMap[x.uid],total=a.total||t.questions.length,ans=a.answered!=null?a.answered:'–';
+    const left=(!t.dpp&&a.remaining!=null)?Math.max(0,a.remaining-(now-(a.updated||now))):null;
+    const st=a.left>0?'<span style="color:var(--bad)">⏸ Paused (left the app)</span>':'<span style="color:#15803d">● Active</span>';
+    return `<div class="row sp" style="margin-top:8px;align-items:flex-start"><div><b>${esc(x.name)}</b> ${st}<div class="mut">Started ${liveTime(a.startedAt)} · ${ans}/${total} answered${t.dpp?' · no time limit':(left!=null?' · '+clk(left)+' left':'')}</div></div></div>`;
+  }).join('')+'</div>';
 }
 async function resultCanvas(o){
   // o: {title, cls, date, qn, maxm, rows:[{name,score,total}], logo}
@@ -2189,7 +2218,7 @@ function analysis(u,k){
   <div class="card">${x.allowed>genOf(x.res)?`<span style="color:var(--ac)">🔁 Reassigned – waiting for the student to attempt again.</span> <button class="sec" onclick="unassign('${u}')">Cancel</button>`:`<button onclick="reassign('${u}')">🔁 Reassign test</button><div class="mut" style="margin-top:6px">The new result will replace the old one.</div>`}</div>
   <div class="row" style="gap:10px;flex-wrap:nowrap">${box(res.score+'/'+res.total,t.dpp?'Correct answers':'Score')}${t.dpp?'':box(Math.round(res.score/res.total*100)+'%','Percentage')}${box('#'+rank+' / '+done.length,'Rank')}</div>
   <div class="row" style="gap:10px;flex-wrap:nowrap;margin-top:10px">${box(cor,'Correct')}${box(wr,'Wrong')}${box(sk,'Skipped')}</div>${brk(rcache.t,res)}
-  <div class="card"><div>⏱ Total time: <b>${tm.length?ft(tot):'not recorded'}</b>${tm.length?' · average '+ft(tot/n)+' per question':''}</div>${slow.length?`<div class="mut" style="margin-top:4px">Took the longest on: ${slow.map(z=>'Q'+(z.i+1)+' ('+ft(z.v)+')').join(', ')}</div>`:''}<div class="mut" style="margin-top:4px">Class average: ${avg}/${n} · Submitted ${new Date(res.at).toLocaleString()}</div></div><h2>Question-wise analysis</h2>`;
+  <div class="card"><div>⏱ Total time: <b>${tm.length?ft(tot):'not recorded'}</b>${tm.length?' · average '+ft(tot/n)+' per question':''}</div>${slow.length?`<div class="mut" style="margin-top:4px">Took the longest on: ${slow.map(z=>'Q'+(z.i+1)+' ('+ft(z.v)+')').join(', ')}</div>`:''}<div class="mut" style="margin-top:4px">Class average: ${avg}/${n} · Started ${liveTime(res.startedAt)} · Submitted ${new Date(res.at).toLocaleString()}</div></div><h2>Question-wise analysis</h2>`;
   t.questions.forEach((q,i)=>{
     const a=an[i],s=a==null||a<0,ok=a===q.answer;
     o+=`<div class="card"><div class="row sp"><b style="color:${s?'var(--mut)':ok?'var(--ok)':'var(--bad)'}">${s?'– Skipped':ok?'✓ Correct':'✗ Wrong'}</b>${tm.length?`<span class="mut">⏱ ${ft(tm[i]||0)}</span>`:''}</div><div style="margin:6px 0"><b>${i+1}. ${fmt(q.q)}</b></div>${imgQ(q)}`;
@@ -2330,7 +2359,7 @@ document.addEventListener('visibilitychange',async()=>{
   if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
 });
 // App version: always visible on every screen (login, home, tests, results)
-(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 16-Nov-E';
+(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 19-Nov-A';
 v.style.cssText='position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.7;color:#fff;text-shadow:0 1px 2px #000;z-index:9998;pointer-events:none';
 document.body.appendChild(v)})();
 init();
