@@ -187,6 +187,7 @@ const bnT=()=>{const sc=bnSec();return bnGen||!sc?'Science, Maths &amp; Physics<
 const bnS=()=>{const sc=bnSec();return bnGen||!sc?'CBSE | JEE &amp; NEET':isSub(sc)?'CBSE | JEE &amp; NEET Foundation':'CBSE / NEET / JEE Mains'};
 const bannerFull=()=>`<div class="p3d"><div class="row" style="gap:14px;margin:0;flex-wrap:nowrap;align-items:center"><div style="flex:none;width:64px;text-align:center"><img class="tav" src="${TEACHER}" alt="" width="64" height="64"><div class="mut" style="font-size:11.55px;font-weight:700;margin-top:11.5px">Founder</div></div><div style="line-height:1.3;min-width:0;text-align:center"><div class="tt">${bnT()}</div><div class="mut bsub" style="font-size:14px;font-weight:600;margin-top:3px">${bnS()}</div><span class="tbd">15 + Years of Experience</span></div></div><div class="tgl">Conceptual learning <span class="arw">➜</span> Daily practice <span class="arw">➜</span> Everything is possible 💡</div>${!bnGen&&CLSLINE[bnSec()]?`<div class="cln">${arw(CLSLINE[bnSec()])}</div>`:''}</div><div class="idl mindsbox"><div class="mut mindsh"><span class="bulb">💡</span> The Minds That Inspire Me <span class="bulb" style="animation-delay:.9s">💡</span></div><div class="mindsrow">${PHYS.map((x,ix)=>`<div class="ic" onclick="idol(${ix},this)" style="text-align:center;flex:1 1 0;min-width:0;max-width:60px">${x[2]?`<img src="${x[2]}" alt="" style="display:block;width:100%;aspect-ratio:1/1;border-radius:50%;object-fit:cover">`:`<div class="ph" style="width:100%;aspect-ratio:1/1;border-radius:50%;background:${x[1]};color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center">${esc(x[0].replace(/[^A-Z]/g,'').slice(0,2)||x[0][0])}</div>`}<div class="mut" style="font-size:11px;margin-top:3px;line-height:1.25">${esc(x[0])}</div>${IDSUB[x[0]]?`<div class="isub">${IDSUB[x[0]]}</div>`:''}</div>`).join('')}</div><div id="ib" class="ib"></div></div>`;
 let myEmail='',myClass='',mySec='',myExtra=[],stab='tests',stuOpen=false,subj='Science',dppMode=null,myAcc={},myExpires=0,expiredMode=false;const mySecs=()=>[mySec].concat(myExtra.filter(x=>x&&x!==mySec));
+let indOn=false,indAdm=false,indList=null,indUsers=[],indOpen=null,indBusy=false;
 const CLS={IX:'Class IX',X:'Class X',XI:'Physics XI',XII:'Physics XII'};
 const banner=nm=>{bnGen=!!nm;const r=bannerFull();bnGen=false;return nm?r.split('<div class="idl">')[0]:r};
 const logoTop=()=>`<div class="row" style="gap:12px;margin:8px 0;flex-wrap:nowrap;align-items:center"><img src="${LOGO}" alt="" width="96" height="96" style="border-radius:50%;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.5)"><div style="min-width:0;flex:1"><h1 class="wt">The Wave<br>Academy</h1></div></div>${banner(true)}`;
@@ -197,7 +198,7 @@ function init(){
   firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.firestore();
   auth.onAuthStateChanged(async u=>{
     if(unsub){unsub();unsub=null}
-    tests=[];mine={};mineAll={};allowed={};att={};opened=false;expiredMode=false;loaded=false;sec=null;draft=null;isTeacher=false;stuOpen=false;myExtra=[];myClass='';mySec='';myName='';
+    tests=[];mine={};mineAll={};allowed={};att={};opened=false;expiredMode=false;loaded=false;sec=null;draft=null;isTeacher=false;stuOpen=false;indOn=false;indAdm=false;indList=null;myExtra=[];myClass='';mySec='';myName='';
     if(!u){uid=null;return loginScreen()}
     uid=u.uid;
     try{
@@ -212,9 +213,9 @@ function init(){
       if(!isTeacher){try{(await db.collection('retakes').where('uid','==',uid).get()).docs.forEach(d=>{const x=d.data();allowed[x.testId]=x.allowed||1})}catch(e){}}
       if(!isTeacher)sec=mySec;
       if(!isTeacher&&myExpires>0&&Date.now()>=myExpires){expiredMode=true;const ds=await Promise.all(Object.keys(mine).map(id=>db.collection('tests').doc(id).get().catch(()=>null)));tests=ds.filter(d=>d&&d.exists).map(d=>({id:d.id,...d.data()}));loaded=true;if(!openHash())home();return}
-      const col=db.collection('tests'),upd=()=>{const mp=new Map();[].concat(...Object.values(parts)).forEach(x=>mp.set(x.id,x));rawTests=[...mp.values()].sort((a,b)=>b.created-a.created);applyVis();const sig=rawTests.map(t=>[t.id,t.published,t.publishAt,t.deadline,(t.assigned||[]).join(),t.title,t.section,t.subject,(t.questions||[]).length].join('~')).join('|');if(loaded&&sig===lastSig)return;lastSig=sig;const go=()=>{if(!timer&&!draft){const y=window.scrollY;if(!openHash())home();window.scrollTo(0,y)}};if(loaded&&!isTeacher&&!timer)refreshMine().then(go);else go();if(!isTeacher)autoLeft()},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
+      const col=db.collection('tests'),upd=()=>{const mp=new Map();[].concat(...Object.values(parts)).forEach(x=>mp.set(x.id,x));rawTests=[...mp.values()].sort((a,b)=>b.created-a.created);applyVis();const sig=rawTests.map(t=>[t.id,t.published,t.publishAt,t.deadline,(t.assigned||[]).join(),(t.indiv||[]).join(),t.title,t.section,t.subject,(t.questions||[]).length].join('~')).join('|');if(loaded&&sig===lastSig)return;lastSig=sig;const go=()=>{if(!timer&&!draft){const y=window.scrollY;if(!openHash())home();window.scrollTo(0,y)}};if(loaded&&!isTeacher&&!timer)refreshMine().then(go);else go();if(!isTeacher)autoLeft()},parts={},fail=()=>h('<div class="card">Could not load tests.</div>');
       if(isTeacher){const us=col.orderBy('created','desc').onSnapshot(s=>{parts.all=s.docs.map(d=>({id:d.id,...d.data()}));setTimeout(fixNums,500);parts.all.filter(t=>t.publishAt>0&&t.sched!==true).forEach(t=>{try{col.doc(t.id).update({sched:true}).catch(()=>{})}catch(e){}});upd()},fail);unsub=us}
-      else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));mySecs().forEach(sc=>us.push(col.where('section','==',sc).where('sched','==',true).onSnapshot(s=>{parts['sch'+sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{})));us.push(col.where('assigned','array-contains',uid).onSnapshot(s=>{parts.asg=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));unsub=()=>us.forEach(f=>f&&f())}
+      else{const us=mySecs().map(sc=>col.where('section','==',sc).where('published','==',true).onSnapshot(s=>{parts[sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},fail));mySecs().forEach(sc=>us.push(col.where('section','==',sc).where('sched','==',true).onSnapshot(s=>{parts['sch'+sc]=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{})));us.push(col.where('assigned','array-contains',uid).onSnapshot(s=>{parts.asg=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));us.push(col.where('indiv','array-contains',uid).onSnapshot(s=>{parts.ind=s.docs.map(d=>({id:d.id,...d.data()}));upd()},()=>{}));unsub=()=>us.forEach(f=>f&&f())}
       loaded=true;if(!openHash())home();
     }catch(e){h('<div class="card">Something went wrong: '+esc(e.message||e)+'</div><button class="sec" onclick="logout()">Logout</button>')}
   });
@@ -463,7 +464,9 @@ function copyLink(){
   if(navigator.clipboard)navigator.clipboard.writeText(i.value).then(()=>m.textContent='Link copied ✓',()=>m.textContent='Press and hold the link above to copy it.');
   else m.textContent='Press and hold the link above to copy it.';
 }
-const isAsg=t=>!isTeacher&&!!uid&&Array.isArray(t.assigned)&&t.assigned.includes(uid);
+const regAsg=t=>!isTeacher&&!!uid&&Array.isArray(t.assigned)&&t.assigned.includes(uid);
+const isInd=t=>!isTeacher&&!!uid&&Array.isArray(t.indiv)&&t.indiv.includes(uid);
+const isAsg=t=>regAsg(t)||isInd(t);
 const pubNow=t=>t.published===true||(t.publishAt>0&&Date.now()>=t.publishAt);
 const locked=t=>!isTeacher&&t.published!==true&&t.publishAt>Date.now()&&!isAsg(t);
 const cdTxt=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -486,7 +489,7 @@ function teacherTick(){
   if(key!==tKey){tKey=key;const y=window.scrollY;home();window.scrollTo(0,y)}
 }
 setInterval(()=>{lockTick();teacherTick()},1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lockTick();teacherTick()}});
-const excl=t=>isAsg(t)&&!(pubNow(t)&&mySecs().includes(t.section));
+const excl=t=>regAsg(t)&&!(pubNow(t)&&mySecs().includes(t.section));
 const over=t=>t.deadline&&Date.now()>t.deadline&&!isAsg(t);
 function timeOver(){h('<div class="card" style="text-align:center"><div class="big" style="color:var(--bad)">Time Over!!!</div><p class="mut">This test is no longer available.</p></div><button onclick="home()">Back</button>')}
 const lob=()=>`<div style="margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="bg" onclick="logout()" style="width:100%;height:52px;margin:0;padding:0;font-size:16px">Logout</button><button id="srf" onclick="hardRefresh()" style="width:100%;height:52px;margin:0;padding:0;font-size:16px;background:linear-gradient(145deg,#2f7cf6,#1748b8);color:#fff;border:1px solid #0d3a9a;border-radius:14px;font-weight:700;box-shadow:0 4px 12px rgba(23,72,184,.45)">⟳ Refresh</button></div>`;
@@ -594,6 +597,61 @@ function stuCard(sc){
   const n=tests.filter(t=>(!sc||(t.section||'Other')===sc)&&(pubNow(t)||locked(t)||isAsg(t))&&!(mine[t.id]&&!canRetake(t.id))&&!(over(t)&&!att[t.id])).length;
   return `<div class="card"><div class="stc"><span class="pl" style="font-size:15px;padding:6px 14px">📘 Upcoming Tests : ${n}</span></div></div>`;
 }
+
+function indCard(){return `<div class="card opt" style="display:block" onclick="indOn=true;stuOpen=true;dppMode=null;home()"><div class="row sp"><div><h2 style="margin:0">👤 Individual Class</h2><p class="mut" style="margin:2px 0 0">Your private one-to-one tests &amp; DPPs</p></div><span class="mut">›</span></div></div>`}
+function indivAdmin(){
+  if(indList===null){if(!indBusy){indBusy=true;indLoad()}return h('<button class="sec" onclick="indAdm=false;home()">← Back</button><div class="card mut">Loading…</div>')}
+  const en=new Set(indList.map(x=>x.id));
+  const opts=indUsers.filter(u=>!en.has(u.id)).sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||'')).map(u=>`<option value="${esc(u.id)}">${esc((u.name||u.email||u.id)+(u.sec?' — '+u.sec:''))}</option>`).join('');
+  let o=`<button class="sec" onclick="indAdm=false;indOpen=null;home()">← Back</button><h1>Individual classes</h1><p class="mut">Each student here has a private one-to-one class. Only the tests and DPPs you assign to them appear in their 👤 Individual Class tab.</p><div class="card"><h2 style="margin-top:0">Add student</h2><select id="indSel" style="width:100%"><option value="">Choose student…</option>${opts}</select><button class="gold" style="width:100%;margin-top:8px" onclick="indAdd()">Add to individual classes</button></div>`;
+  if(!indList.length)o+='<div class="card mut">No individual students yet.</div>';
+  indList.slice().sort((a,b)=>(a.name||a.email||'').localeCompare(b.name||b.email||'')).forEach(s=>{
+    const n=rawTests.filter(t=>Array.isArray(t.indiv)&&t.indiv.includes(s.id)).length,open=indOpen===s.id;
+    o+=`<div class="card"><h2 style="margin:0">${esc(s.name||'Student')}</h2><p class="mut" style="margin:2px 0 8px">${esc(s.email||'')}${s.sec?' · '+esc(s.sec):''}${s.cls?' · '+esc(s.cls):''} · ${n} test(s) assigned</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="gold" onclick="indOpen=${open?'null':"'"+s.id+"'"};home()">${open?'Close':'👤 Assign tests / DPPs'}</button><button class="sec" onclick="indRemove('${s.id}')">Remove</button></div>`;
+    if(open){
+      o+=`<div id="ind_${s.id}" style="margin-top:10px;border-top:1px solid #ffffff33;padding-top:8px">${rawTests.length?'':'<p class="mut">No tests created yet.</p>'}${rawTests.slice().sort((a,b)=>(a.created||0)-(b.created||0)).map(t=>`<label class="row" style="gap:8px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" data-t="${t.id}" ${(t.indiv||[]).includes(s.id)?'checked':''} style="width:20px;height:20px;flex:none"><span>${esc(t.title||'Untitled')}${t.dpp?' <span class="mut">(DPP)</span>':''}${t.published===true?'':' <span class="mut">(not published to class)</span>'}</span></label>`).join('')}<button class="gold" style="width:100%;margin-top:8px" onclick="indSave('${s.id}')">Save</button></div>`;
+    }
+    o+='</div>';
+  });
+  return h(o);
+}
+async function indLoad(){
+  try{
+    const [a,b]=await Promise.all([db.collection('indiv').get(),db.collection('users').get()]);
+    indList=a.docs.map(d=>({id:d.id,...d.data()}));
+    indUsers=b.docs.map(d=>({id:d.id,...d.data()})).filter(u=>u.id!==uid);
+  }catch(e){alert('Could not load individual classes: '+e.message);indAdm=false;indList=null}
+  indBusy=false;
+  if(indAdm)home();
+}
+async function indAdd(){
+  const id=(document.getElementById('indSel')||{}).value;if(!id)return;
+  const u=indUsers.find(x=>x.id===id)||{};
+  const rec={name:u.name||'',email:u.email||'',sec:u.sec||'',cls:u.cls||'',added:Date.now()};
+  try{await db.collection('indiv').doc(id).set(rec)}catch(e){alert('Could not add: '+e.message);return}
+  indList.push({id,...rec});home();
+}
+async function indRemove(id){
+  if(!confirm('Remove this student from individual classes? Their individual test assignments will be removed too.'))return;
+  try{
+    const b=db.batch();
+    rawTests.filter(t=>Array.isArray(t.indiv)&&t.indiv.includes(id)).forEach(t=>b.update(db.collection('tests').doc(t.id),{indiv:firebase.firestore.FieldValue.arrayRemove(id)}));
+    b.delete(db.collection('indiv').doc(id));
+    await b.commit();
+  }catch(e){alert('Could not remove: '+e.message);return}
+  indList=indList.filter(x=>x.id!==id);indOpen=null;home();
+}
+async function indSave(id){
+  const b=db.batch();let c=0;
+  document.querySelectorAll('#ind_'+id+' input[type=checkbox]').forEach(cb=>{
+    const t=rawTests.find(x=>x.id===cb.dataset.t);if(!t)return;
+    const has=Array.isArray(t.indiv)&&t.indiv.includes(id),ref=db.collection('tests').doc(t.id);
+    if(cb.checked&&!has){b.update(ref,{indiv:firebase.firestore.FieldValue.arrayUnion(id)});c++}
+    else if(!cb.checked&&has){b.update(ref,{indiv:firebase.firestore.FieldValue.arrayRemove(id)});c++}
+  });
+  try{if(c)await b.commit()}catch(e){alert('Could not save: '+e.message);return}
+  alert(c?'Saved.':'No changes.');home();
+}
 function home(){normMine();wmOn=false;liveStop();
   draft=null;
   rootNext=isTeacher?(sec===null?'root':'sec'):(mySecs().length<2||!stuOpen?'root':'sec');
@@ -604,36 +662,37 @@ function home(){normMine();wmOn=false;liveStop();
   if(!isTeacher&&!stuOpen&&mySecs().length===1){sec=mySecs()[0];stuOpen=true}
   if(!isTeacher&&expiredMode){return h(hd+expiredCard()+tests.filter(t=>mine[t.id]).map(t=>t.dpp?dppCard(t):stuTC(t)).join('')+lob())}
   if(!isTeacher&&!stuOpen){
-    return h(hd+banner()+noteBox()+stuCard()+asgBox()+'<p class="mut">Choose a section.</p>'+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;dppMode=null;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
+    return h(hd+banner()+noteBox()+stuCard()+asgBox()+'<p class="mut">Choose a section.</p>'+(tests.some(isInd)?indCard():'')+mySecs().map(s=>`<div class="card opt" style="display:block" onclick="sec='${s}';stuOpen=true;dppMode=null;indOn=false;home()"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${esc(s)}</h2></div><span class="mut">›</span></div></div>`).join('')+lob());
   }
+  if(isTeacher&&indAdm)return indivAdmin();
   if(sec===null){
     let o=hd+banner();
     SECS.concat(tests.some(t=>!t.section)?['Other']:[]).forEach(s=>{const n=tests.filter(t=>(t.section||'Other')===s).length;o+=`<div class="card opt" style="display:block" onclick="flipOpen('${s}')"><div class="row sp"><div style="display:flex;align-items:center">${sic(s)}<h2 style="margin:0">${s}</h2></div><span class="mut">›</span></div></div>`});
-    return h(o+`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px"><button class="bg" onclick="allStudents()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">All students</button><button class="bg" onclick="logout()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">Logout</button><button onclick="hardRefresh()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px;background:linear-gradient(145deg,#2f7cf6,#1748b8);color:#fff;border:1px solid #0d3a9a;border-radius:14px;font-weight:700;box-shadow:0 4px 12px rgba(23,72,184,.45)">Refresh</button></div>`);
+    return h(o+`<button class="gold" style="width:100%;padding:13px;margin-top:6px" onclick="indAdm=true;indList=null;home()">👤 Individual classes</button><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px"><button class="bg" onclick="allStudents()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">All students</button><button class="bg" onclick="logout()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px">Logout</button><button onclick="hardRefresh()" style="width:100%;height:52px;margin:0;padding:0;font-size:14px;background:linear-gradient(145deg,#2f7cf6,#1748b8);color:#fff;border:1px solid #0d3a9a;border-radius:14px;font-weight:700;box-shadow:0 4px 12px rgba(23,72,184,.45)">Refresh</button></div>`);
   }
   const tb=(k,l)=>`<button class="gold ${stab===k?'on':''}" style="padding:12px 2px;min-width:0;white-space:nowrap;font-size:${isVidSec(sec)&&isTeacher?11:14}px" onclick="setTab('${k}')">${l}</button>`;
   let o=isTeacher?`<div class="row" style="margin:12px 0 10px;flex-wrap:nowrap;align-items:center;gap:12px"><img src="${LOGO}" alt="" width="62" height="62" style="border-radius:50%;flex:none;box-shadow:0 3px 8px rgba(0,0,0,.5)"><h2 style="margin:0;min-width:0;flex:1;font-size:min(28.8px,6vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sec)}</h2><button onclick="stab=stab==='stu'?'tests':'stu';home()" aria-label="Students" style="flex:none;width:51px;height:51px;border-radius:50%;padding:0;margin:0 0 0 auto;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7f9fff,#2f54c9 55%,#0d1f5c);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45)"><svg width="29" height="29" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="#ffffff"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6z" fill="#ffffff"/><circle cx="17" cy="9" r="2.8" fill="#ffffff"/><path d="M16 14.2c3.2 0 5.5 1.9 5.5 5.3h-4.2" fill="#ffffff"/></svg></button><button onclick="sec=null;home()" aria-label="Home" style="flex:none;width:51px;height:51px;border-radius:50%;padding:0;margin:0 0 0 12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7f9fff,#2f54c9 55%,#0d1f5c);border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45)"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z" fill="#ffffff"/></svg></button></div>`:(dppOn()&&dppMode?hd:hd+banner());
   if(isTeacher){if(isVidSec(sec)){if(stab==='menu')return h(o+xiMenu());if(['tests','dpp'].includes(stab))o+=xiBack();}}
-  else{const one=mySecs().length<2;o+=noteBox()+expiryNote()+stuCard(sec)+asgBox()+(one?'':`<button onclick="stuOpen=false;dppMode=null;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}${dppOn()&&dppMode?'':`<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div>`}`}
+  else{const one=mySecs().length<2;o+=noteBox()+expiryNote()+stuCard(sec)+asgBox()+(!indOn&&tests.some(isInd)?indCard():'')+(one?'':`<button onclick="stuOpen=false;dppMode=null;indOn=false;home()">← Back</button>`)+`${one?'':`<h2 style="margin:10px 0 0;display:flex;align-items:center">${sic(sec)}${esc(sec)}</h2>`}${dppOn()&&dppMode?'':`<div class="row sp" style="margin:12px 2px 0;flex-wrap:nowrap"><b style="white-space:nowrap">Class: ${esc(myClass)}</b><b style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">${esc(myName&&!/@/.test(myName)?myName:'Student')}</b></div>`}`}
   if(isTeacher&&stab==='stu')return sectionStudents(o);
   if(isTeacher&&stab==='vid'&&isVidSec(sec))return lecAdminIn(o);
   if(isTeacher&&stab==='fm'&&isVidSec(sec))return fmAdminIn(o);
   if(isTeacher&&stab==='notes'&&isVidSec(sec))return notesAdminIn();
   if(isTeacher&&stab==='der'&&isVidSec(sec)){nt.sub='der';return notesAdminIn();}
-  if(dppOn()&&!dppMode){const dn=tests.filter(t=>(t.section||'Other')===sec&&t.dpp&&pubNow(t)).length,wn=tests.filter(t=>(t.section||'Other')===sec&&!t.dpp&&pubNow(t)).length;const cd=isTeacher||myAcc.dpp!==false,cw=isTeacher||myAcc.tests!==false,cn=myAcc.notes!==false;const card=(fn,t,pp)=>`<div class="card opt" style="display:block" onclick="${fn}"><h2 style="margin:0">${t}</h2>${pp?`<p class="mut" style="margin:4px 0 0">${pp}</p>`:''}</div>`;let L='';if(cn)L+=card("notesStudent()",'📚 Notes','Derivations and Concepts');if(cd)L+=card("dppMode='dpp';home()",'📘 DPP','Daily Practice Problems');if(cw)L+=card("dppMode='weekly';home()",'📝 Tests','');L+=card('progress()','📊 My progress','Your scores and report');return h(o+L+lob())}
-  o+=(dppOn()?'<button class="sec" style="margin-bottom:8px" onclick="dppMode=null;home()">← Back</button>':'')+subTabs();
+  if(dppOn()&&!dppMode&&!indOn){const dn=tests.filter(t=>(t.section||'Other')===sec&&t.dpp&&pubNow(t)).length,wn=tests.filter(t=>(t.section||'Other')===sec&&!t.dpp&&pubNow(t)).length;const cd=isTeacher||myAcc.dpp!==false,cw=isTeacher||myAcc.tests!==false,cn=myAcc.notes!==false;const card=(fn,t,pp)=>`<div class="card opt" style="display:block" onclick="${fn}"><h2 style="margin:0">${t}</h2>${pp?`<p class="mut" style="margin:4px 0 0">${pp}</p>`:''}</div>`;let L='';if(cn)L+=card("notesStudent()",'📚 Notes','Derivations and Concepts');if(cd)L+=card("dppMode='dpp';home()",'📘 DPP','Daily Practice Problems');if(cw)L+=card("dppMode='weekly';home()",'📝 Tests','');L+=card('progress()','📊 My progress','Your scores and report');return h(o+L+lob())}
+  o+=indOn&&!isTeacher?`<button class="sec" style="margin-bottom:8px" onclick="indOn=false;home()">← Back</button><h2 style="margin:6px 0 4px">👤 Individual Class</h2><p class="mut" style="margin:0 0 8px">Tests and DPPs your teacher set for you privately.</p>`:(dppOn()?'<button class="sec" style="margin-bottom:8px" onclick="dppMode=null;indOn=false;home()">← Back</button>':'')+subTabs();
   if(isTeacher&&isVidSec(sec))o+=stab==='dpp'?`<button class="gold" style="width:100%;padding:13px" onclick="builder(true)">+ Create new DPP</button>`:`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`;
   else if(isTeacher)o+=`<button class="gold" style="width:100%;padding:13px" onclick="builder()">+ Create new test</button>`+(/XI|XII/.test(sec||'')?`<button class="gold" style="width:100%;padding:13px;margin-top:8px" onclick="builder(true)">+ Create new DPP</button>`:'');
   if(isTeacher)o+=`<button class="sec" style="width:100%;margin-top:8px" onclick="cleanHistory()">🧹 Delete old reattempt history</button>`;
-  const ts=sortT(tests.filter(t=>(t.section||'Other')===sec&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))&&(!dppOn()||(dppMode==='dpp')===!!t.dpp)&&(isTeacher||(t.dpp?myAcc.dpp!==false:myAcc.tests!==false))&&(!(isTeacher&&isVidSec(sec))||(stab==='dpp')===!!t.dpp)));
-  if(!ts.length)o+=`<div class="card mut">No tests in ${isSub(sec)?esc(subj)+' ':'this section '}yet.</div>`;
+  const ts=sortT(indOn?tests.filter(t=>isInd(t)):tests.filter(t=>(t.section||'Other')===sec&&(isTeacher||!isInd(t)||regAsg(t))&&(!isSub(sec)||(t.subject||'Science')===subj)&&(isTeacher||!excl(t))&&(!dppOn()||(dppMode==='dpp')===!!t.dpp)&&(isTeacher||(t.dpp?myAcc.dpp!==false:myAcc.tests!==false))&&(!(isTeacher&&isVidSec(sec))||(stab==='dpp')===!!t.dpp)));
+  if(!ts.length)o+=indOn&&!isTeacher?'<div class="card mut">No individual tests yet.</div>':`<div class="card mut">No tests in ${isSub(sec)?esc(subj)+' ':'this section '}yet.</div>`;
   ts.forEach(t=>{
-    const done=mine[t.id],pub=pubNow(t),a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
+    const done=mine[t.id],pub=pubNow(t)||isInd(t),a=att[t.id],all=mineAll[t.id]||[],rt=canRetake(t.id);
     const fd=ms=>new Date(ms).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}).replace(/\b(am|pm)\b/,m=>m.toUpperCase());
     const info=`<div>No. of Questions : ${String(t.questions.length).padStart(2,'0')}</div><div>Duration : ${durMin(t)} min</div>`,dl=`<div class="mut" style="margin-top:0">Deadline : ${t.deadline?fd(t.deadline):'none'}</div>`;
     if(isTeacher){
       const dr=!pub&&!(t.publishAt>0),tn=dr?'':numTxt(t);
-      o+=`<div class="card" style="${dr?'':'cursor:pointer;'}position:relative"${dr?'':` onclick="results('${t.id}')"`}>${tn?`<span style="position:absolute;top:6px;right:12px;font-size:11px;font-weight:700;color:var(--ac);letter-spacing:.3px">${tn}</span>`:''}<div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${t.dpp?'📘 DPP · ':''}${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div></div></div>${dl}<div style="margin-top:${dr?0:6}px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+fd(t.publishAt)+'</span>':''}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}</div>
+      o+=`<div class="card" style="${dr?'':'cursor:pointer;'}position:relative"${dr?'':` onclick="results('${t.id}')"`}>${tn?`<span style="position:absolute;top:6px;right:12px;font-size:11px;font-weight:700;color:var(--ac);letter-spacing:.3px">${tn}</span>`:''}<div class="row sp" style="flex-wrap:nowrap"><div style="min-width:0"><div class="row" style="gap:10px;flex-wrap:nowrap;align-items:flex-start"><b style="color:var(--ac);white-space:nowrap;padding-top:2px">Topic:</b><h2 style="margin:0">${t.dpp?'📘 DPP · ':''}${esc(t.title)}</h2></div><div class="mut" style="margin-top:6px">${info}</div></div></div>${dl}<div style="margin-top:${dr?0:6}px">${pub?'<span style="color:var(--ok)">● '+(t.publishAt>0&&t.published!==true?'Live (scheduled)':'Published')+'</span>':t.publishAt>0?'<span style="color:var(--ac)">⏰ Scheduled: '+fd(t.publishAt)+'</span>':''}${(t.assigned||[]).length?' <span class="bdg pz">👤 Assigned to '+t.assigned.length+'</span>':''}${(t.indiv||[]).length?' <span class="bdg pz">👤 Individual '+t.indiv.length+'</span>':''}</div>
       <div class="g3" style="margin-top:12px" onclick="event.stopPropagation()"><button class="bl" onclick="togglePub('${t.id}',${!pub})">${pub?'Unpublish':'Publish'}</button><button class="bl" onclick="editTest('${t.id}')">✏️ Edit</button><button class="bl" onclick="confirmDel('${t.id}')">Delete</button><button class="bl" onclick="openPaper('${t.id}')">Question Paper</button><button class="bl" onclick="paperPdf('${t.id}',true)">Answer Key</button><button class="bl" onclick="editDl('${t.id}')">Deadline</button><button class="bl" style="grid-column:1/-1" onclick="schedOpen('${t.id}')">⏰ ${t.publishAt>0?'Change schedule':'Schedule publish'}</button><button class="bl" style="grid-column:1/-1" onclick="assignOpen('${t.id}')">${(!pub&&t.publishAt>0)?'👤 Give early access':'👤 Assign to students'}${(t.assigned||[]).length?' ('+t.assigned.length+')':''}</button>${dr?'<button class="bl" style="grid-column:1/-1;cursor:default">Draft</button>':'<button class="bl" style="grid-column:1/-1" onclick="results(\''+t.id+'\')">📊 Result</button>'}</div></div>`;
       return;
     }
@@ -2359,7 +2418,7 @@ document.addEventListener('visibilitychange',async()=>{
   if(!timer&&!draft){const y=window.scrollY;home();window.scrollTo(0,y)}
 });
 // App version: always visible on every screen (login, home, tests, results)
-(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 19-Nov-A';
+(function(){const v=document.createElement('div');v.id='appver';v.textContent='App version 20-Nov-A';
 v.style.cssText='position:fixed;right:8px;bottom:4px;font-size:10px;opacity:.7;color:#fff;text-shadow:0 1px 2px #000;z-index:9998;pointer-events:none';
 document.body.appendChild(v)})();
 init();
